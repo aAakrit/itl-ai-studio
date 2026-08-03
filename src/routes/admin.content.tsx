@@ -252,7 +252,9 @@ function formatBookDate(value?: string) {
 
 }
 
-export default function AdminContentPage() {
+// NOT exported: exporting a route component opts the whole file out of
+// TanStack Router's automatic code splitting ("These exports will not be code-split").
+function AdminContentPage() {
 
     const queryClient = useQueryClient();
 

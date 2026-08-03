@@ -261,7 +261,7 @@ export function Hero({ data }: { data: HeroData }) {
         <div className="mx-auto mt-16 grid max-w-5xl grid-cols-2 gap-6 md:grid-cols-4">
           {data.stats.map((s, i) => (
             <motion.div
-              key={s.label}
+              key={`${s.label}-${i}`}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -296,9 +296,9 @@ export function LogoStrip({ items }: { items: LogoItem[] }) {
           Trusted by professionals at leading firms
         </p>
         <div className="mt-6 grid grid-cols-2 items-center gap-6 sm:grid-cols-4 md:grid-cols-8">
-          {items.map((l) => (
+          {items.map((l, i) => (
             <div
-              key={l.name}
+              key={`${l.name}-${i}`}
               className="flex items-center justify-center text-center font-display text-base font-semibold tracking-tight text-muted-foreground/80 grayscale transition-all hover:text-foreground hover:grayscale-0 md:text-lg"
             >
               {l.name}
@@ -323,7 +323,7 @@ export function ProblemSection({ items }: { items: PainPoint[] }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {items.map((p, i) => (
           <motion.div
-            key={p.title}
+            key={`${p.title}-${i}`}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
@@ -359,7 +359,7 @@ export function SolutionSection({ steps }: { steps: { icon: string; title: strin
         <div className="grid gap-4 md:grid-cols-5">
           {steps.map((s, i) => (
             <motion.div
-              key={s.title}
+              key={`${s.title}-${i}`}
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -587,8 +587,8 @@ export function ProductShowcaseSection({ items }: { items: ProductShowcase[] }) 
                 <h3 className="font-display text-3xl font-bold tracking-tight md:text-4xl">{s.title}</h3>
                 <p className="mt-4 text-base leading-relaxed text-muted-foreground">{s.body}</p>
                 <ul className="mt-6 space-y-2.5">
-                  {s.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm">
+                  {s.bullets.map((b, bi) => (
+                    <li key={`${b}-${bi}`} className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{b}</span>
                     </li>
@@ -647,7 +647,7 @@ export function ComparisonSection({ rows }: { rows: ComparisonRow[] }) {
         </div>
         {rows.map((r, i) => (
           <div
-            key={r.capability}
+            key={`${r.capability}-${i}`}
             className={cn(
               "grid grid-cols-[1.4fr_repeat(4,1fr)] items-center gap-2 px-5 py-3.5 text-sm",
               i % 2 === 1 && "bg-surface-2/20",
@@ -680,7 +680,7 @@ export function WorkflowSection({ steps }: { steps: { step: string; title: strin
         <div aria-hidden className="absolute left-4 right-4 top-14 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
         {steps.map((s, i) => (
           <motion.div
-            key={s.step}
+            key={`${s.step}-${i}`}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -714,7 +714,7 @@ export function NoticeReplyFlow({ steps }: { steps: { icon: string; title: strin
         <div className="grid gap-3 md:grid-cols-5">
           {steps.map((s, i) => (
             <motion.div
-              key={s.title}
+              key={`${s.title}-${i}`}
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -747,7 +747,7 @@ export function TrustSection({ sources }: { sources: TrustSource[] }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {sources.map((s, i) => (
           <motion.div
-            key={s.name}
+            key={`${s.name}-${i}`}
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -779,7 +779,7 @@ export function FeaturesGrid({ items }: { items: FeatureItem[] }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {items.map((f, i) => (
           <motion.div
-            key={f.title}
+            key={`${f.title}-${i}`}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -810,7 +810,7 @@ export function Testimonials({ items }: { items: Testimonial[] }) {
       <div className="grid gap-4 md:grid-cols-3">
         {items.map((t, i) => (
           <motion.figure
-            key={t.name}
+            key={`${t.name}-${i}`}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}

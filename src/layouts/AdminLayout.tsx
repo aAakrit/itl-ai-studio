@@ -31,16 +31,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <SidebarNavSkeleton />
         ) : (
           <div className="mt-6 space-y-6">
-            {(nav ?? []).map((section) => (
-              <div key={section.section}>
+            {(nav ?? []).map((section, si) => (
+              <div key={`${section.section}-${si}`}>
                 <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {section.section}
                 </p>
                 <ul className="space-y-0.5">
-                  {section.items.map((item) => {
+                  {section.items.map((item, i) => {
                     const active = pathname === item.to;
                     return (
-                      <li key={item.to}>
+                      <li key={`${item.to}-${i}`}>
                         <Link
                           to={item.to}
                           className={cn(

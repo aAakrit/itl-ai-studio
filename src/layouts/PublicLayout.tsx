@@ -61,12 +61,12 @@ function TopNav() {
           <Logo />
         </Link>
         <nav className="hidden items-center gap-0.5 md:flex">
-          {publicNav.map((item) => {
+          {publicNav.map((item, i) => {
             const isHashLink = item.to.includes("#");
             if (isHashLink) {
               return (
                 <a
-                  key={item.to}
+                  key={`${item.to}-${i}`}
                   href={item.to}
                   className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 >
@@ -77,7 +77,7 @@ function TopNav() {
             const active = location.pathname === item.to;
             return (
               <Link
-                key={item.to}
+                key={`${item.to}-${i}`}
                 to={item.to}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary hover:text-foreground",
@@ -145,10 +145,10 @@ function TopNav() {
 
             <SheetContent side="right" className="w-72">
               <div className="mt-8 flex flex-col gap-1">
-                {publicNav.map((item) =>
+                {publicNav.map((item, i) =>
                   item.to.includes("#") ? (
                     <a
-                      key={item.to}
+                      key={`${item.to}-${i}`}
                       href={item.to}
                       className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                     >
@@ -156,7 +156,7 @@ function TopNav() {
                     </a>
                   ) : (
                     <Link
-                      key={item.to}
+                      key={`${item.to}-${i}`}
                       to={item.to}
                       className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                     >
@@ -241,15 +241,15 @@ function Footer() {
             <div key={section}>
               <h4 className="mb-4 text-sm font-semibold text-foreground">{section}</h4>
               <ul className="space-y-2.5">
-                {items.map((item) =>
+                {items.map((item, i) =>
                   item.to.includes("#") ? (
-                    <li key={item.to}>
+                    <li key={`${item.to}-${i}`}>
                       <a href={item.to} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                         {item.label}
                       </a>
                     </li>
                   ) : (
-                    <li key={item.to}>
+                    <li key={`${item.to}-${i}`}>
                       <Link to={item.to} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                         {item.label}
                       </Link>
