@@ -15,6 +15,7 @@ import { chatService, isFileTool } from "@/services/workspace.service";
 import { cn, generateId } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
 import { Logo } from "@/components/common/Logo";
+import { siteConfig } from "@/config/site";
 
 const ERROR_MESSAGE_CONTENT = "⚠ Unable to generate a response.\n\nPlease try again.";
 
@@ -364,7 +365,7 @@ export function WorkspaceShell() {
 
         {/* Messages — the only independently scrolling region in this column */}
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl px-4 py-8">
+          <div className="mx-auto px-4 py-8">
             {thread && thread.messages.length > 0 ? (
               <div className="space-y-5">
                 {thread.messages.map((m) => (
@@ -409,7 +410,14 @@ function EmptyState({ moduleName }: { moduleName: string }) {
     >
       <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl gradient-primary text-primary-foreground shadow-float">
         {/* <Sparkles className="h-6 w-6" /> */}
-        <Logo />
+        <img
+                src={siteConfig.logo}
+                alt={`${siteConfig.name} logo`}
+                width={6}
+                height={6}
+                className="rounded-md object-contain"
+                style={{ width: 24, height: 24 }}
+              />
       </div>
       <h1 className="text-2xl font-bold tracking-tight">
         How can I assist you with <span className="text-gradient">{moduleName}</span> today?

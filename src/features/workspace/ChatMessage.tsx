@@ -137,7 +137,7 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isPending ? 0.6 : 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}
+      className={cn("flex gap-3", isUser ? "justify" : "justify")}
     >
       {!isUser && (
         <div
@@ -153,7 +153,7 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
           {isError ? <AlertTriangle className="h-4 w-4" /> : isClarification ? <HelpCircle className="h-4 w-4" /> : "ITL"}
         </div>
       )}
-      <div className={cn("max-w-3xl min-w-0", isUser ? "text-right" : "")}>
+      <div className={cn("max-w-4xl min-w-0", isUser ? "text-right" : "")}>
         {/* needs_clarification: this is a clarifying QUESTION, not a real
             answer — rendered with a distinct border/badge rather than as a
             normal assistant reply, so it's never mistaken for one. */}

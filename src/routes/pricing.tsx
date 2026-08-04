@@ -71,11 +71,12 @@ function Pricing() {
               </button>
             ))}
           </div> */}
+          <span className="mt-8 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-soft"></span>
         </div>
       </section>
 
       {/* Plans */}
-      <section className="mx-auto max-w-6xl px-6 pb-16">
+      <section className="mx-auto max-w-3xl px-6 pb-16">
         <div className="grid gap-5 md:grid-cols-2">
           {plans.map((p: any, i: any) => {
             const price = cycle === "yearly" && p.yearlyPrice != null ? p.yearlyPrice : p.price;
