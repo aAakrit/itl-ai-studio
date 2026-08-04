@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Copy, Check, Download, Wand2, ThumbsDown, ThumbsUp, Scale, FileText, BookOpen, Bell,
@@ -496,12 +496,54 @@ function ProcessingIndicator({ progress, stage }: { progress?: number; stage?: s
   );
 }
 
+
+const THINKING_PHASES = [
+  { after: 0, label: "Reading your question…" },
+  { after: 4, label: "Searching statutes and case law…" },
+  { after: 14, label: "Cross-checking citations…" },
+  { after: 28, label: "Weighing conflicting authorities…" },
+  { after: 45, label: "Verifying the answer for accuracy…" },
+  { after: 70, label: "Still working — complex queries can take up time…" },
+];
+
 export function TypingIndicator() {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const phase = [...THINKING_PHASES].reverse().find((p) => elapsed >= p.after) ?? THINKING_PHASES[0];
+  // Asymptotic curve — conveys steady progress without ever claiming a false
+  // "done" moment, since actual completion time genuinely varies (20-90s+).
+  const progressPct = Math.round((1 - Math.exp(-elapsed / 40)) * 100);
+
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const elapsedLabel = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
   return (
-    <div className="flex items-center gap-1.5 px-4 py-3">
-      <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
+    <div className="flex items-start gap-3 px-1 py-2">
+      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full gradient-primary text-[11px] font-bold text-primary-foreground">
+        ITL
+      </div>
+      <div className="min-w-[220px] max-w-xs rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-soft">
+        <div className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
+          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
+          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
+          <span className="ml-1 text-[13px] text-foreground">{phase.label}</span>
+        </div>
+        <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-1000 ease-linear"
+            style={{ width: `${Math.max(4, progressPct)}%` }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">{elapsedLabel} elapsed</p>
+      </div>
     </div>
   );
 }
