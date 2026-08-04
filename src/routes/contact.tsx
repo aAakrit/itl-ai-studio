@@ -50,7 +50,7 @@ function Contact() {
       </section>
 
       {/* Channels */}
-      <section className="mx-auto max-w-6xl px-6 pb-8">
+      {/* <section className="mx-auto max-w-6xl px-6 pb-8">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {channels.map((c, i) => (
             <motion.div
@@ -72,7 +72,7 @@ function Contact() {
             </motion.div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* Form + Info */}
       <section className="mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_1.3fr]">

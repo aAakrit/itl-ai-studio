@@ -57,11 +57,11 @@ function Home() {
       <SolutionSection steps={data.solutionSteps} />
       <WorkspaceShowcase />
       <ProductShowcaseSection items={data.showcases} />
-      <ComparisonSection rows={data.comparison} />
+      {/* <ComparisonSection rows={data.comparison} /> */}
       <WorkflowSection steps={data.workflow} />
       <NoticeReplyFlow steps={data.noticeReplyFlow} />
       <TrustSection sources={data.trustSources} />
-      <Testimonials items={data.testimonials} />
+      {/* <Testimonials items={data.testimonials} /> */}
       <CtaBanner />
     </PublicLayout>
   );

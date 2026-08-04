@@ -240,8 +240,8 @@ export function PromptComposer({
           </Button>
         )}
       </form>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">
-        Responses are grounded in Indian tax statute & case law. Always verify citations before advising clients
+      <p className="mt-2 text-center text-[11px] text-foreground">
+        ITL AI is an assistive tool and may produce inaccurate or incomplete information. Please verify independently.
       </p>
     </div>
   );

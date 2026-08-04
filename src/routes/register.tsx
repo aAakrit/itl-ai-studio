@@ -82,7 +82,7 @@ function Register() {
       state: values.state,
       pincode: values.pincode,
       firm: values.firm || undefined,
-      address: values.address || undefined,
+      address: values.address,
       telephone: values.telephone || undefined,
       fax: values.fax || undefined,
     });
@@ -220,7 +220,7 @@ function Register() {
               <Input placeholder="Firm name" className="h-11" {...form.register("firm")} />
             </div>
             <div className="col-span-2">
-              <Label className="mb-1.5 block text-xs">Address</Label>
+              <Label className="mb-1.5 block text-xs">Address *</Label>
               <Input placeholder="Office address" className="h-11" {...form.register("address")} />
             </div>
             <div>

@@ -14,6 +14,7 @@ import { useWorkspaceModules } from "@/hooks";
 import { chatService, isFileTool } from "@/services/workspace.service";
 import { cn, generateId } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
+import { Logo } from "@/components/common/Logo";
 
 const ERROR_MESSAGE_CONTENT = "⚠ Unable to generate a response.\n\nPlease try again.";
 
@@ -407,14 +408,15 @@ function EmptyState({ moduleName }: { moduleName: string }) {
       className="mx-auto mt-8 max-w-xl text-center"
     >
       <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl gradient-primary text-primary-foreground shadow-float">
-        <Sparkles className="h-6 w-6" />
+        {/* <Sparkles className="h-6 w-6" /> */}
+        <Logo />
       </div>
       <h1 className="text-2xl font-bold tracking-tight">
-        How can I help with <span className="text-gradient">{moduleName}</span> today?
+        How can I assist you with <span className="text-gradient">{moduleName}</span> today?
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      {/* <p className="mt-2 text-sm text-muted-foreground">
         Ask a question, paste a query, or drop a notice PDF. Answers come with verifiable citations.
-      </p>
+      </p> */}
     </motion.div>
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Target, Eye, Rocket, Users2, MapPin } from "lucide-react";
@@ -95,7 +96,7 @@ function About() {
       </section>
 
       {/* Timeline */}
-      <section className="mx-auto max-w-4xl px-6 py-16">
+      {/* <section className="mx-auto max-w-4xl px-6 py-16">
         <SectionHeader eyebrow="Journey" title="From prototype to production." />
         <div className="relative">
           <div className="absolute left-6 top-2 bottom-2 hidden w-px bg-border md:block" />
@@ -119,10 +120,10 @@ function About() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Roadmap */}
-      {data.roadmap && (
+      {/* {data.roadmap && (
         <section className="mx-auto max-w-6xl px-6 py-16">
           <SectionHeader eyebrow="Roadmap" title="What's next." subtitle="Shipping in the coming quarters." />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -145,10 +146,10 @@ function About() {
             ))}
           </div>
         </section>
-      )}
+      )} */}
 
       {/* Culture + Leadership */}
-      {data.culture && (
+      {/* {data.culture && (
         <section className="mx-auto max-w-6xl px-6 py-16">
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
@@ -192,7 +193,7 @@ function About() {
             Mumbai · Bengaluru · Delhi · Pune
           </div>
         </section>
-      )}
+      )} */}
 
       <CtaBanner />
     </PublicLayout>

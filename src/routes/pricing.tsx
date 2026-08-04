@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -44,7 +45,7 @@ function Pricing() {
             Start free. Upgrade when your team is ready. Firm-wide licences and enterprise deployments available.
           </p>
 
-          <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-soft">
+          {/* <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-soft">
             {(["monthly", "yearly"] as Cycle[]).map((c) => (
               <button
                 key={c}
@@ -69,13 +70,13 @@ function Pricing() {
                 )}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* Plans */}
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2">
           {plans.map((p: any, i: any) => {
             const price = cycle === "yearly" && p.yearlyPrice != null ? p.yearlyPrice : p.price;
             const suffix = p.price === 0 ? "" : cycle === "yearly" ? "/ year" : "/ month";
@@ -134,7 +135,7 @@ function Pricing() {
       </section>
 
       {/* Comparison */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      {/* <section className="mx-auto max-w-6xl px-6 py-16">
         <SectionHeader eyebrow="Compare" title="Every capability, by plan." />
         <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-soft">
           <div className="grid grid-cols-[1.4fr_repeat(3,1fr)] gap-2 border-b border-border/60 bg-surface-2/40 px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -173,10 +174,10 @@ function Pricing() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* Enterprise */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      {/* <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-10 shadow-float md:p-14">
           <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
           <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
@@ -205,7 +206,7 @@ function Pricing() {
             </ul>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Pricing FAQ */}
       <section className="mx-auto max-w-3xl px-6 py-16">
