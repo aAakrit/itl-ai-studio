@@ -137,7 +137,7 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isPending ? 0.6 : 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={cn("flex gap-3", isUser ? "justify" : "justify")}
+      className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}
     >
       {!isUser && (
         <div
@@ -153,7 +153,7 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
           {isError ? <AlertTriangle className="h-4 w-4" /> : isClarification ? <HelpCircle className="h-4 w-4" /> : "ITL"}
         </div>
       )}
-      <div className={cn("max-w-4xl min-w-0", isUser ? "text-right" : "")}>
+      <div className={cn("max-w-4xl min-w-0", isUser ? "text-left" : "")}>
         {/* needs_clarification: this is a clarifying QUESTION, not a real
             answer — rendered with a distinct border/badge rather than as a
             normal assistant reply, so it's never mistaken for one. */}
@@ -498,12 +498,12 @@ function ProcessingIndicator({ progress, stage }: { progress?: number; stage?: s
 
 
 const THINKING_PHASES = [
-  { after: 0, label: "Reading your question…" },
-  { after: 4, label: "Searching statutes and case law…" },
-  { after: 14, label: "Cross-checking citations…" },
-  { after: 28, label: "Weighing conflicting authorities…" },
-  { after: 45, label: "Verifying the answer for accuracy…" },
-  { after: 70, label: "Still working — complex queries can take up time…" },
+  { after: 0, label: "Reading your questio" },
+  { after: 4, label: "Searching statutes and case laW" },
+  { after: 14, label: "Cross-checking citations" },
+  { after: 28, label: "Weighing conflicting authorities" },
+  { after: 45, label: "Verifying the answer for accuracy" },
+  { after: 70, label: "Still working — complex queries can take up time" },
 ];
 
 export function TypingIndicator() {
@@ -516,8 +516,6 @@ export function TypingIndicator() {
   }, []);
 
   const phase = [...THINKING_PHASES].reverse().find((p) => elapsed >= p.after) ?? THINKING_PHASES[0];
-  // Asymptotic curve — conveys steady progress without ever claiming a false
-  // "done" moment, since actual completion time genuinely varies (20-90s+).
   const progressPct = Math.round((1 - Math.exp(-elapsed / 40)) * 100);
 
   const minutes = Math.floor(elapsed / 60);
@@ -531,10 +529,10 @@ export function TypingIndicator() {
       </div>
       <div className="min-w-[220px] max-w-xs rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-soft">
         <div className="flex items-center gap-1.5">
+          <span className="ml-1 text-[18px] text-primary-foreground">{phase.label}</span>
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
-          <span className="ml-1 text-[13px] text-foreground">{phase.label}</span>
         </div>
         <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-muted">
           <div

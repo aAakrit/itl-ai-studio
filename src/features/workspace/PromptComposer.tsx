@@ -85,9 +85,6 @@ export function PromptComposer({
         toast.success("Your prompt is already clear — nothing to refine.");
         return;
       }
-      // The vendor returns a set of more specific candidate questions, not a
-      // single "improved" prompt — the user picks the one that matches what
-      // they meant, rather than it being silently auto-filled for them.
       setClarifyOptions(options);
     } catch {
       toast.error("Couldn't clarify that prompt — please try again.");
@@ -104,7 +101,7 @@ export function PromptComposer({
 
   return (
     <div className="w-full">
-      {disabled ? (
+      {/* {disabled ? (
         <p className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-[12px] text-amber-700 dark:text-amber-400">
           {disabledReason ?? "This tool isn't available yet."}
         </p>
@@ -126,7 +123,7 @@ export function PromptComposer({
             ))}
           </div>
         )
-      )}
+      )} */}
 
       {file && (
         <div className="mb-2 flex items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2 text-[12px]">

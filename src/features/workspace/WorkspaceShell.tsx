@@ -408,15 +408,15 @@ function EmptyState({ moduleName }: { moduleName: string }) {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto mt-8 max-w-xl text-center"
     >
-      <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl gradient-primary text-primary-foreground shadow-float">
+      <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-primary-foreground shadow-float">
         {/* <Sparkles className="h-6 w-6" /> */}
         <img
                 src={siteConfig.logo}
                 alt={`${siteConfig.name} logo`}
-                width={6}
-                height={6}
+                width={12}
+                height={12}
                 className="rounded-md object-contain"
-                style={{ width: 24, height: 24 }}
+                style={{ width: 48, height: 32 }}
               />
       </div>
       <h1 className="text-2xl font-bold tracking-tight">
