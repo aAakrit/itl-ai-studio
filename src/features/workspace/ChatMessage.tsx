@@ -498,12 +498,12 @@ function ProcessingIndicator({ progress, stage }: { progress?: number; stage?: s
 
 
 const THINKING_PHASES = [
-  { after: 0, label: "Reading your questio" },
-  { after: 4, label: "Searching statutes and case laW" },
-  { after: 14, label: "Cross-checking citations" },
-  { after: 28, label: "Weighing conflicting authorities" },
-  { after: 45, label: "Verifying the answer for accuracy" },
-  { after: 70, label: "Still working — complex queries can take up time" },
+  { after: 0, label: "Reading your question " },
+  { after: 4, label: "Searching statutes and case law " },
+  { after: 14, label: "Cross-checking citations " },
+  { after: 28, label: "Weighing conflicting authorities " },
+  { after: 45, label: "Verifying the answer for accuracy " },
+  { after: 70, label: "Still working — complex queries can take some time " },
 ];
 
 export function TypingIndicator() {
@@ -529,7 +529,7 @@ export function TypingIndicator() {
       </div>
       <div className="min-w-[220px] max-w-xs rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-soft">
         <div className="flex items-center gap-1.5">
-          <span className="ml-1 text-[18px] text-muted-foreground">{phase.label}</span>
+          <span className="ml-1 text-[18px] bg-primary text-primary-foreground shadow-soft">{phase.label}</span>
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
