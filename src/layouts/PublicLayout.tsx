@@ -53,7 +53,8 @@ function TopNav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.35 }}
         className={cn(
-          "mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-4 py-2.5 transition-all sm:px-5"
+          "mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-4 py-2.5 transition-all sm:px-5",
+          scrolled ? "glass-strong shadow-elevated" : "glass",
         )}
       >
         <Link to="/" className="flex items-center">

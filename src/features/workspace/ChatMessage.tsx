@@ -529,7 +529,7 @@ export function TypingIndicator() {
       </div>
       <div className="min-w-[220px] max-w-xs rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-soft">
         <div className="flex items-center gap-1.5">
-          <span className="ml-1 text-[18px] text-primary-foreground">{phase.label}</span>
+          <span className="ml-1 text-[18px] text-muted-foreground">{phase.label}</span>
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
