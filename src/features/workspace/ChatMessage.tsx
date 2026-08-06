@@ -498,12 +498,13 @@ function ProcessingIndicator({ progress, stage }: { progress?: number; stage?: s
 
 
 const THINKING_PHASES = [
-  { after: 0, label: "Reading your question " },
-  { after: 4, label: "Searching statutes and case law " },
-  { after: 14, label: "Cross-checking citations " },
-  { after: 28, label: "Weighing conflicting authorities " },
-  { after: 45, label: "Verifying the answer for accuracy " },
-  { after: 70, label: "Still working — complex queries can take some time " },
+  { after: 0, label: "Reading your question..." },
+  { after: 4, label: "Searching statutes and case law..." },
+  { after: 12, label: "Reviewing relevant precedents..." },
+  { after: 20, label: "Cross-checking legal citations..." },
+  { after: 35, label: "Verifying the analysis..." },
+  { after: 55, label: "Preparing the final response..." },
+  { after: 80, label: "Still working — complex queries may take a little longer..." },
 ];
 
 export function TypingIndicator() {
@@ -511,37 +512,72 @@ export function TypingIndicator() {
 
   useEffect(() => {
     const start = Date.now();
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    const id = setInterval(
+      () => setElapsed(Math.floor((Date.now() - start) / 1000)),
+      1000,
+    );
+
     return () => clearInterval(id);
   }, []);
 
-  const phase = [...THINKING_PHASES].reverse().find((p) => elapsed >= p.after) ?? THINKING_PHASES[0];
+  const phase =
+    [...THINKING_PHASES].reverse().find((p) => elapsed >= p.after) ??
+    THINKING_PHASES[0];
+
   const progressPct = Math.round((1 - Math.exp(-elapsed / 40)) * 100);
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
-  const elapsedLabel = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  const elapsedLabel =
+    minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 
   return (
-    <div className="flex items-start gap-3 px-1 py-2">
-      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full gradient-primary text-[11px] font-bold text-primary-foreground">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="flex items-start gap-3 px-1 py-2"
+    >
+      <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full gradient-primary text-xs font-bold text-primary-foreground shadow-md">
         ITL
       </div>
-      <div className="min-w-[220px] max-w-xs rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-soft">
-        <div className="flex items-center gap-1.5">
-          <span className="ml-1 text-[18px] bg-primary text-primary-foreground shadow-soft">{phase.label}</span>
-          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:0ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-primary [animation-delay:300ms]" />
+      <div className="min-w-[300px] max-w-md rounded-2xl border border-border bg-card px-5 py-4 shadow-lg">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+
+          <span className="font-semibold text-foreground">
+            Thinking
+          </span>
+
+          <div className="ml-auto flex gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+              style={{ animationDelay: "150ms" }}
+            />
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+              style={{ animationDelay: "300ms" }}
+            />
+          </div>
         </div>
-        <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          {phase.label}
+        </p>
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-1000 ease-linear"
-            style={{ width: `${Math.max(4, progressPct)}%` }}
+            className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+            style={{
+              width: `${Math.max(5, progressPct)}%`,
+            }}
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">{elapsedLabel} elapsed</p>
+        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+          <span>{elapsedLabel} elapsed</span>
+
+          <span>{progressPct}%</span>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
