@@ -89,16 +89,16 @@ function Contact() {
             )}
           </div>
           {/* Map placeholder */}
-          <div className="mt-4 aspect-[4/3] overflow-hidden rounded-3xl border border-border/60 bg-card shadow-soft">
-            <div className="grid h-full w-full place-items-center bg-gradient-to-br from-primary/5 via-accent/5 to-transparent">
-              <div className="text-center">
-                <div className="mx-auto mb-2 grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <p className="font-display text-sm font-semibold">BKC, Mumbai</p>
-                <p className="text-xs text-muted-foreground">Bandra Kurla Complex, 400051</p>
-              </div>
-            </div>
+          <div className="mt-4 overflow-hidden rounded-3xl border border-border/60 shadow-soft">
+            <iframe
+              title="Office Location"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15279.872439571669!2d75.70735535835051!3d26.965536300000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396db34479010d3f%3A0x3a626ff039dba5f4!2sIncome%20Tax%20Library!5e1!3m2!1sen!2sin!4v1786023628650!5m2!1sen!2sin"
+              width="100%"
+              height="340"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block border-0"
+            />
           </div>
         </div>
 
