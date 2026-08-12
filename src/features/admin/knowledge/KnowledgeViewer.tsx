@@ -10,6 +10,7 @@ import { api, endpoints } from "@/services/api/api";
 
 import { ContentHtmlView } from "./ContentHtmlView";
 import { PdfViewer } from "./PdfViewer";
+import { useContentPdf } from "./useContentPdf";
 import { contentHasPdf, contentHtmlOf } from "./types";
 import type { KnowledgeContentDetail, KnowledgeContentSummary } from "./types";
 
@@ -97,14 +98,14 @@ export function KnowledgeViewer({ content }: KnowledgeViewerProps) {
       <Tabs value={tab} onValueChange={setTab} className="mt-4">
         <TabsList>
           <TabsTrigger value="html">HTML</TabsTrigger>
-          {pdfPossible && <TabsTrigger value="pdf">Original PDF</TabsTrigger>}
+          {pdfAvailable && <TabsTrigger value="pdf">Original PDF</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="html" className="mt-4">
           <ContentHtmlView html={html} />
         </TabsContent>
 
-        {pdfPossible && (
+        {pdfAvailable && (
           <TabsContent value="pdf" className="mt-4">
             <PdfViewer
               contentId={current?.id}
