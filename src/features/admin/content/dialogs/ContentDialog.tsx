@@ -32,8 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, endpoints } from "@/services/api/api";
 import { RichTextEditor } from "@/components/common/RichTextEditor";
+import { PdfViewer } from "@/features/admin/knowledge/PdfViewer";
 import { importContentDocument } from "@/utils/export";
 
 export interface ContentRecord {
@@ -48,6 +50,8 @@ export interface ContentRecord {
   body?: string;
   content_html?: string;
   content_text?: string;
+  file_name?: string;
+  file_type?: string;
 }
 
 interface ContentDialogProps {
