@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, endpoints } from "@/services/api/api";
 import { RichTextEditor } from "@/components/common/RichTextEditor";
 import { PdfViewer } from "@/features/admin/knowledge/PdfViewer";
+import { useContentPdf } from "@/features/admin/knowledge/useContentPdf";
 import { importContentDocument } from "@/utils/export";
 
 export interface ContentRecord {
