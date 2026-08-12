@@ -238,3 +238,60 @@
 }
 .animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
 .animate-pulse-dot  { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+/* Knowledge Base reading typography (read-only stored HTML). */
+.content-html {
+  color: hsl(var(--foreground));
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+.content-html h1,
+.content-html h2,
+.content-html h3,
+.content-html h4 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5em 0 0.6em;
+}
+.content-html h1 { font-size: 1.5rem; }
+.content-html h2 { font-size: 1.25rem; }
+.content-html h3 { font-size: 1.1rem; }
+.content-html p { margin: 0 0 1em; }
+.content-html ul,
+.content-html ol { margin: 0 0 1em 1.35em; }
+.content-html ul { list-style: disc; }
+.content-html ol { list-style: decimal; }
+.content-html li { margin-bottom: 0.35em; }
+.content-html a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.content-html blockquote {
+  border-left: 3px solid hsl(var(--primary) / 0.4);
+  margin: 1em 0;
+  padding: 0.25em 0 0.25em 1em;
+  color: hsl(var(--muted-foreground));
+}
+.content-html table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+.content-html th,
+.content-html td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.content-html th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+.content-html img { max-width: 100%; height: auto; }
+.content-html pre {
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  padding: 0.85rem 1rem;
+}
