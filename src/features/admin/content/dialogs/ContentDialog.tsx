@@ -520,9 +520,9 @@ export function ContentDialog({
                                             {importedDocument.pageCount
                                                 ? ` • ${importedDocument.pageCount} pages`
                                                 : ""}
-                                            {importedDocument.wordCount != null
+                                            {/* {importedDocument.wordCount != null
                                                 ? ` • ${importedDocument.wordCount.toLocaleString()} words`
-                                                : ""}
+                                                : ""} */}
                                         </div>
                                     </div>
                                     <Button

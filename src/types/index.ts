@@ -150,7 +150,7 @@ export interface ImportContentResponse {
     title: string;
     html_content: string;
     plain_text: string;
-    word_count: number;
+    word_count?: number;
     page_count?: number;
     file_name: string;
     file_type: string;
