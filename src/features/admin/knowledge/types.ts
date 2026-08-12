@@ -35,21 +35,59 @@ export interface KnowledgeContentSummary {
 
 export interface KnowledgeContentDetail extends KnowledgeContentSummary {
   body?: string;
-  content_html?: string;
-  content_text?: string;
-  plain_text?: string;
-  file_name?: string;
-  file_type?: string;
-  page_count?: number;
-  word_count?: number;
+  content_html?: string | null;
+  content_text?: string | null;
+  plain_text?: string | null;
+
+  // Original uploaded document
+  document_path?: string | null;
+  document_filename?: string | null;
+  document_content_type?: string | null;
+  document_size?: number | null;
+  page_count?: number | null;
+
+  // Keep temporarily if older records/API responses use these
+  file_name?: string | null;
+  file_type?: string | null;
 }
 
-/** A content record is PDF-backed when the import stored a PDF source. */
-export function contentHasPdf(content?: KnowledgeContentDetail | null): boolean | undefined {
-  if (!content) return undefined;
-  const type = content.file_type?.toLowerCase();
-  if (!type) return undefined;
-  return type.includes("pdf");
+export function contentHasPdf(
+  content?: KnowledgeContentDetail | null
+): boolean | undefined {
+  if (!content) {
+    return undefined;
+  }
+
+  const contentType =
+    content.document_content_type?.toLowerCase();
+
+  if (contentType) {
+    return contentType.includes("pdf");
+  }
+
+  const filename =
+    content.document_filename?.toLowerCase();
+
+  if (filename) {
+    return filename.endsWith(".pdf");
+  }
+
+  // Backward compatibility
+  const oldType =
+    content.file_type?.toLowerCase();
+
+  if (oldType) {
+    return oldType.includes("pdf");
+  }
+
+  const oldFilename =
+    content.file_name?.toLowerCase();
+
+  if (oldFilename) {
+    return oldFilename.endsWith(".pdf");
+  }
+
+  return undefined;
 }
 
 export function contentHtmlOf(content?: KnowledgeContentDetail | null): string {

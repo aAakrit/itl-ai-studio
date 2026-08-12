@@ -31,8 +31,6 @@ export function KnowledgeViewer({ content }: KnowledgeViewerProps) {
   const html = contentHtmlOf(current);
   const knownPdf = contentHasPdf(current);
 
-  // When the record does not expose a file type, probe the endpoint once; the
-  // blob is shared with the embedded viewer through the query cache.
   const pdfProbe = useContentPdf(current?.id, Boolean(current?.id) && knownPdf === undefined);
   const pdfAvailable = knownPdf === true || pdfProbe.hasPdf === true;
 
@@ -87,7 +85,15 @@ export function KnowledgeViewer({ content }: KnowledgeViewerProps) {
         </div>
         <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground">
           {current?.reference_no && <span>Ref: {current.reference_no}</span>}
-          {current?.file_name && <span>{current.file_name}</span>}
+          {(
+            current?.document_filename ??
+            current?.file_name
+          ) && (
+            <span>
+              {current.document_filename ??
+                current.file_name}
+            </span>
+          )}
           {current?.keywords && <span>Keywords: {current.keywords}</span>}
         </div>
         {current?.summary && (
@@ -108,10 +114,14 @@ export function KnowledgeViewer({ content }: KnowledgeViewerProps) {
         {pdfAvailable && (
           <TabsContent value="pdf" className="mt-4">
             <PdfViewer
-              contentId={current?.id}
-              enabled={tab === "pdf"}
-              fileName={current?.file_name}
-            />
+            contentId={current?.id}
+            enabled={tab === "pdf"}
+            fileName={
+              current?.document_filename ??
+              current?.file_name ??
+              "Document.pdf"
+            }
+          />
           </TabsContent>
         )}
       </Tabs>
