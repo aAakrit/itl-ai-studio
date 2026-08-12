@@ -215,26 +215,72 @@ export function ContentDialog({
 
   const mutation = useMutation({
     mutationFn: async (values: ContentFormValues) => {
-      const payload = {
-      ...values,
-      version: Number(values.version),
-      content_html: values.content_html ?? "",
-      content_text: values.content_text ?? "",
-
-      attachment_path: importedDocument?.attachmentPath ?? null,
-      attachment_filename: importedDocument?.attachmentFilename ?? null,
-      attachment_content_type:
-        importedDocument?.attachmentContentType ?? null,
-      attachment_size: importedDocument?.attachmentSize ?? null,
+    const slugify = (value: string): string => {
+      return value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
     };
 
-      if (mode === "edit" && content?.id) {
-        const { data } = await api.put(endpoints.books.updateContent(content.id), payload);
-        return data;
-      }
+    const payload = {
+      book_id: values.book_id,
+      section_id: values.section_id,
 
-      const { data } = await api.post(endpoints.books.createContent, payload);
+      title: values.title,
+
+      slug: slugify(values.title),
+
+      reference_no: values.reference_no || null,
+
+      keywords: values.keywords
+        ? values.keywords
+            .split(",")
+            .map((keyword) => keyword.trim())
+            .filter(Boolean)
+        : [],
+
+      summary: values.summary || null,
+
+      status: values.status,
+
+      version: Number(values.version),
+
+      sort_order: 0,
+      html_content: values.content_html ?? "",
+
+      plain_text: values.content_text ?? "",
+      attachment_path:
+        importedDocument?.attachmentPath ?? null,
+
+      attachment_filename:
+        importedDocument?.attachmentFilename ?? null,
+
+      attachment_content_type:
+        importedDocument?.attachmentContentType ?? null,
+
+      attachment_size:
+        importedDocument?.attachmentSize ?? null,
+
+      page_count:
+        importedDocument?.pageCount ?? null,
+    };
+
+    if (mode === "edit" && content?.id) {
+      const { data } = await api.put(
+        endpoints.books.updateContent(content.id),
+        payload,
+      );
+
       return data;
+    }
+
+    const { data } = await api.post(
+      endpoints.books.createContent,
+      payload,
+    );
+
+    return data;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -292,7 +338,10 @@ export function ContentDialog({
     open && Boolean(content?.id) && !knownPdf && !knownDocx,
   );
 
-  const hasOriginalPdf = Boolean(content?.id) && (knownPdf || pdfProbe.hasPdf === true);
+  const hasOriginalPdf =
+  importedFileType.includes("pdf") ||
+  knownPdf ||
+  (Boolean(content?.id) && pdfProbe.hasPdf === true);
 
   useEffect(() => {
     setEditorTab("editor");
@@ -478,41 +527,64 @@ export function ContentDialog({
                           </div>
                           )}
                           {contentSource === "upload" && !importedDocument && (
-                            <div className="rounded-xl border-2 border-dashed p-10 text-center">
-                                <input
-                                    id="content-import"
-                                    hidden
-                                    type="file"
-                                    accept=".pdf,.docx"
-                                    onChange={handleImport}
-                                />
+                            importMutation.isPending ? (
+                              <div className="rounded-xl border bg-muted/30 p-10 text-center">
+                                <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+
                                 <p className="text-lg font-semibold">
-                                    Drag & Drop PDF or DOCX
+                                  Importing document...
                                 </p>
+
                                 <p className="mt-2 text-sm text-muted-foreground">
-                                    or
+                                  Uploading and processing your document. Please wait.
                                 </p>
+
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Do not close this window.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border-2 border-dashed p-10 text-center">
+                                <input
+                                  id="content-import"
+                                  hidden
+                                  type="file"
+                                  accept=".pdf,.docx"
+                                  onChange={handleImport}
+                                />
+
+                                <p className="text-lg font-semibold">
+                                  Drag & Drop PDF or DOCX
+                                </p>
+
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  or
+                                </p>
+
                                 <Button
-                                    className="mt-4"
-                                    type="button"
-                                    onClick={() =>
-                                        document
-                                            .getElementById("content-import")
-                                            ?.click()
-                                    }
+                                  className="mt-4"
+                                  type="button"
+                                  disabled={importMutation.isPending}
+                                  onClick={() =>
+                                    document
+                                      .getElementById("content-import")
+                                      ?.click()
+                                  }
                                 >
-                                    Browse Files
+                                  Browse Files
                                 </Button>
+
                                 <p className="mt-4 text-xs text-muted-foreground">
-                                    Supported: PDF, DOCX • Max 20 MB
+                                  Supported: PDF, DOCX • Max 20 MB
                                 </p>
-                            </div>
+                              </div>
+                            )
                           )}
                           {importedDocument && (
                             <div className="rounded-lg border bg-green-50 p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="font-medium">
+                                        <div className="font-medium text-foreground">
                                             ✓ {importedDocument.fileName}
                                         </div>
                                         <div className="text-sm text-muted-foreground">
@@ -541,46 +613,34 @@ export function ContentDialog({
                             </div>
                           )}
                           {(contentSource === "manual" || importedDocument) && (
-                            hasOriginalPdf ? (
-                              <Tabs value={editorTab} onValueChange={setEditorTab}>
-                                <TabsList>
-                                  <TabsTrigger value="editor">Editor</TabsTrigger>
-                                  <TabsTrigger value="pdf">Original PDF</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="editor" className="mt-3">
-                                  <RichTextEditor
-                                    content={field.value ?? ""}
-                                    onChange={(html, text) => {
-                                      field.onChange(html);
-                                      form.setValue("content_text", text, {
-                                        shouldDirty: true,
-                                      });
-                                    }}
-                                  />
-                                </TabsContent>
-                                <TabsContent value="pdf" className="mt-3">
-                                  <PdfViewer
-                                    contentId={content?.id}
-                                    enabled={editorTab === "pdf"}
-                                    fileName={
-                                      currentContent?.attachment_filename ??
-                                      currentContent?.file_name
-                                    }
-                                  />
-                                </TabsContent>
-                              </Tabs>
+                          <>
+                            {hasOriginalPdf ? (
+                              <div className="mt-3">
+                                <PdfViewer
+                                  contentId={content?.id}
+                                  enabled={true}
+                                  fileName={
+                                    importedDocument?.attachmentFilename ??
+                                    importedDocument?.fileName ??
+                                    currentContent?.attachment_filename ??
+                                    currentContent?.file_name
+                                  }
+                                />
+                              </div>
                             ) : (
                               <RichTextEditor
                                 content={field.value ?? ""}
                                 onChange={(html, text) => {
                                   field.onChange(html);
+
                                   form.setValue("content_text", text, {
                                     shouldDirty: true,
                                   });
                                 }}
                               />
-                            )
-                         )}
+                            )}
+                          </>
+                        )}
                       </div>
                     </FormControl>
                     <FormMessage />
