@@ -48,9 +48,19 @@ export interface ContentRecord {
   status: string;
   version: number;
   updated_at: string;
+
   body?: string;
   content_html?: string;
   content_text?: string;
+
+  attachment_path?: string;
+  attachment_filename?: string;
+  attachment_content_type?: string;
+  attachment_size?: number;
+
+  page_count?: number | null;
+
+  // Keep these only if old API responses still use them
   file_name?: string;
   file_type?: string;
 }
@@ -119,38 +129,34 @@ export function ContentDialog({
   const importMutation = useMutation({
       mutationFn: importContentDocument,
       onSuccess: (result) => {
-          form.setValue(
-              "title",
-              result.title,
-          );
+      form.setValue("title", result.title);
 
-          form.setValue(
-              "content_html",
-              result.html_content,
-          );
+      form.setValue(
+        "content_html",
+        result.html_content ?? "",
+      );
 
-          form.setValue(
-              "content_text",
-              result.plain_text,
-          );
+      form.setValue(
+        "content_text",
+        result.plain_text ?? "",
+      );
 
-          setImportedDocument({
-              fileName: result.file_name,
-              fileType: result.file_type,
-              pageCount: result.page_count,
-              wordCount: result.word_count,
-          });
+      setImportedDocument({
+        fileName: result.file_name,
+        fileType: result.file_type,
+        pageCount: result.page_count,
+        wordCount: result.word_count,
 
-          setContentSource("upload");
+        attachmentPath: result.attachment_path,
+        attachmentFilename: result.attachment_filename,
+        attachmentContentType: result.attachment_content_type,
+        attachmentSize: result.attachment_size,
+      });
 
-          toast.success(
-              "Document imported successfully.",
-          );
-      },
+      setContentSource("upload");
 
-      onError: () => {
-          toast.error("Unable to import document.");
-      },
+      toast.success("Document imported successfully.");
+    },
   });
 
   const handleImport = (
@@ -210,11 +216,17 @@ export function ContentDialog({
   const mutation = useMutation({
     mutationFn: async (values: ContentFormValues) => {
       const payload = {
-        ...values,
-        version: Number(values.version),
-        content_html: values.content_html ?? "",
-        content_text: values.content_text ?? "",
-      };
+      ...values,
+      version: Number(values.version),
+      content_html: values.content_html ?? "",
+      content_text: values.content_text ?? "",
+
+      attachment_path: importedDocument?.attachmentPath ?? null,
+      attachment_filename: importedDocument?.attachmentFilename ?? null,
+      attachment_content_type:
+        importedDocument?.attachmentContentType ?? null,
+      attachment_size: importedDocument?.attachmentSize ?? null,
+    };
 
       if (mode === "edit" && content?.id) {
         const { data } = await api.put(endpoints.books.updateContent(content.id), payload);
@@ -250,18 +262,26 @@ export function ContentDialog({
   const [importedDocument, setImportedDocument] = useState<{
     fileName: string;
     fileType: string;
-    pageCount?: number;
-    wordCount: number;
+    pageCount?: number | null;
+    wordCount?: number | null;
+
+    attachmentPath?: string | null;
+    attachmentFilename?: string | null;
+    attachmentContentType?: string | null;
+    attachmentSize?: number | null;
   } | null>(null);
 
   const [editorTab, setEditorTab] = useState("editor");
 
   // The "Original PDF" tab only makes sense for a saved, PDF-backed record.
   // DOCX imports keep the extracted-HTML-only workflow.
-  const savedFileType = currentContent?.file_type?.toLowerCase() ?? "";
+  const savedFileType =
+    currentContent?.attachment_content_type?.toLowerCase() ??
+    currentContent?.file_type?.toLowerCase() ??
+    "";
+  const knownPdf = savedFileType.includes("pdf");
   const importedFileType = importedDocument?.fileType?.toLowerCase() ?? "";
   const combinedFileType = `${savedFileType} ${importedFileType}`;
-  const knownPdf = combinedFileType.includes("pdf");
   const knownDocx =
     combinedFileType.includes("docx") || combinedFileType.includes("word");
 
@@ -500,7 +520,9 @@ export function ContentDialog({
                                             {importedDocument.pageCount
                                                 ? ` • ${importedDocument.pageCount} pages`
                                                 : ""}
-                                            {` • ${importedDocument.wordCount.toLocaleString()} words`}
+                                            {importedDocument.wordCount != null
+                                                ? ` • ${importedDocument.wordCount.toLocaleString()} words`
+                                                : ""}
                                         </div>
                                     </div>
                                     <Button
@@ -541,7 +563,8 @@ export function ContentDialog({
                                     contentId={content?.id}
                                     enabled={editorTab === "pdf"}
                                     fileName={
-                                      importedDocument?.fileName ?? currentContent?.file_name
+                                      currentContent?.attachment_filename ??
+                                      currentContent?.file_name
                                     }
                                   />
                                 </TabsContent>

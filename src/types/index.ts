@@ -154,6 +154,10 @@ export interface ImportContentResponse {
     page_count?: number;
     file_name: string;
     file_type: string;
+    attachment_path?: string | null;
+    attachment_filename?: string | null;
+    attachment_content_type?: string | null;
+    attachment_size?: number | null;
 }
 
 export interface ChatThread {
