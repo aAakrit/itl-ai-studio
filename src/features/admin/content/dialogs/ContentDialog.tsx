@@ -53,11 +53,10 @@ export interface ContentRecord {
   content_html?: string;
   content_text?: string;
 
-  attachment_path?: string;
-  attachment_filename?: string;
-  attachment_content_type?: string;
-  attachment_size?: number;
-
+  document_path?: string | null;
+  document_filename?: string | null;
+  document_content_type?: string | null;
+  document_size?: number | null;
   page_count?: number | null;
 
   // Keep these only if old API responses still use them
@@ -250,16 +249,16 @@ export function ContentDialog({
       html_content: values.content_html ?? "",
 
       plain_text: values.content_text ?? "",
-      attachment_path:
+      document_path:
         importedDocument?.attachmentPath ?? null,
 
-      attachment_filename:
+      document_filename:
         importedDocument?.attachmentFilename ?? null,
 
-      attachment_content_type:
+      document_content_type:
         importedDocument?.attachmentContentType ?? null,
 
-      attachment_size:
+      document_size:
         importedDocument?.attachmentSize ?? null,
 
       page_count:
@@ -322,7 +321,7 @@ export function ContentDialog({
   // The "Original PDF" tab only makes sense for a saved, PDF-backed record.
   // DOCX imports keep the extracted-HTML-only workflow.
   const savedFileType =
-    currentContent?.attachment_content_type?.toLowerCase() ??
+    currentContent?.document_content_type?.toLowerCase() ??
     currentContent?.file_type?.toLowerCase() ??
     "";
   const knownPdf = savedFileType.includes("pdf");
@@ -622,7 +621,7 @@ export function ContentDialog({
                                   fileName={
                                     importedDocument?.attachmentFilename ??
                                     importedDocument?.fileName ??
-                                    currentContent?.attachment_filename ??
+                                    currentContent?.document_filename ??
                                     currentContent?.file_name
                                   }
                                 />
