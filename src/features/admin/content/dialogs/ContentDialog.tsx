@@ -488,15 +488,44 @@ export function ContentDialog({
                             </div>
                           )}
                           {(contentSource === "manual" || importedDocument) && (
-                            <RichTextEditor
-                              content={field.value ?? ""}
-                              onChange={(html, text) => {
-                                field.onChange(html);
-                                form.setValue("content_text", text, {
-                                  shouldDirty: true,
-                                });
-                              }}
-                            />
+                            hasOriginalPdf ? (
+                              <Tabs value={editorTab} onValueChange={setEditorTab}>
+                                <TabsList>
+                                  <TabsTrigger value="editor">Editor</TabsTrigger>
+                                  <TabsTrigger value="pdf">Original PDF</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="editor" className="mt-3">
+                                  <RichTextEditor
+                                    content={field.value ?? ""}
+                                    onChange={(html, text) => {
+                                      field.onChange(html);
+                                      form.setValue("content_text", text, {
+                                        shouldDirty: true,
+                                      });
+                                    }}
+                                  />
+                                </TabsContent>
+                                <TabsContent value="pdf" className="mt-3">
+                                  <PdfViewer
+                                    contentId={content?.id}
+                                    enabled={editorTab === "pdf"}
+                                    fileName={
+                                      importedDocument?.fileName ?? currentContent?.file_name
+                                    }
+                                  />
+                                </TabsContent>
+                              </Tabs>
+                            ) : (
+                              <RichTextEditor
+                                content={field.value ?? ""}
+                                onChange={(html, text) => {
+                                  field.onChange(html);
+                                  form.setValue("content_text", text, {
+                                    shouldDirty: true,
+                                  });
+                                }}
+                              />
+                            )
                          )}
                       </div>
                     </FormControl>
