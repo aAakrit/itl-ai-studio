@@ -32,8 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, endpoints } from "@/services/api/api";
 import { RichTextEditor } from "@/components/common/RichTextEditor";
+import { PdfViewer } from "@/features/admin/knowledge/PdfViewer";
+import { useContentPdf } from "@/features/admin/knowledge/useContentPdf";
 import { importContentDocument } from "@/utils/export";
 
 export interface ContentRecord {
@@ -48,6 +51,8 @@ export interface ContentRecord {
   body?: string;
   content_html?: string;
   content_text?: string;
+  file_name?: string;
+  file_type?: string;
 }
 
 interface ContentDialogProps {
@@ -248,6 +253,32 @@ export function ContentDialog({
     pageCount?: number;
     wordCount: number;
   } | null>(null);
+
+  const [editorTab, setEditorTab] = useState("editor");
+
+  // The "Original PDF" tab only makes sense for a saved, PDF-backed record.
+  // DOCX imports keep the extracted-HTML-only workflow.
+  const savedFileType = currentContent?.file_type?.toLowerCase() ?? "";
+  const importedFileType = importedDocument?.fileType?.toLowerCase() ?? "";
+  const combinedFileType = `${savedFileType} ${importedFileType}`;
+  const knownPdf = combinedFileType.includes("pdf");
+  const knownDocx =
+    combinedFileType.includes("docx") || combinedFileType.includes("word");
+
+  // When the record does not expose a file type, probe the PDF endpoint once
+  // (the result is shared with the embedded viewer through the query cache).
+  const pdfProbe = useContentPdf(
+    content?.id,
+    open && Boolean(content?.id) && !knownPdf && !knownDocx,
+  );
+
+  const hasOriginalPdf = Boolean(content?.id) && (knownPdf || pdfProbe.hasPdf === true);
+
+  useEffect(() => {
+    setEditorTab("editor");
+  }, [content?.id, open]);
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -488,15 +519,44 @@ export function ContentDialog({
                             </div>
                           )}
                           {(contentSource === "manual" || importedDocument) && (
-                            <RichTextEditor
-                              content={field.value ?? ""}
-                              onChange={(html, text) => {
-                                field.onChange(html);
-                                form.setValue("content_text", text, {
-                                  shouldDirty: true,
-                                });
-                              }}
-                            />
+                            hasOriginalPdf ? (
+                              <Tabs value={editorTab} onValueChange={setEditorTab}>
+                                <TabsList>
+                                  <TabsTrigger value="editor">Editor</TabsTrigger>
+                                  <TabsTrigger value="pdf">Original PDF</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="editor" className="mt-3">
+                                  <RichTextEditor
+                                    content={field.value ?? ""}
+                                    onChange={(html, text) => {
+                                      field.onChange(html);
+                                      form.setValue("content_text", text, {
+                                        shouldDirty: true,
+                                      });
+                                    }}
+                                  />
+                                </TabsContent>
+                                <TabsContent value="pdf" className="mt-3">
+                                  <PdfViewer
+                                    contentId={content?.id}
+                                    enabled={editorTab === "pdf"}
+                                    fileName={
+                                      importedDocument?.fileName ?? currentContent?.file_name
+                                    }
+                                  />
+                                </TabsContent>
+                              </Tabs>
+                            ) : (
+                              <RichTextEditor
+                                content={field.value ?? ""}
+                                onChange={(html, text) => {
+                                  field.onChange(html);
+                                  form.setValue("content_text", text, {
+                                    shouldDirty: true,
+                                  });
+                                }}
+                              />
+                            )
                          )}
                       </div>
                     </FormControl>

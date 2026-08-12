@@ -261,6 +261,8 @@ export const endpoints = {
       `/admin/books/sections/${sectionId}/contents`,
     incrementView: (contentId: string) =>
       `/admin/books/contents/${contentId}/view`,
+    contentPdf: (contentId: string) =>
+      `/admin/books/contents/${contentId}/pdf`,
     importContent: "/admin/books/contents/import",
   },
 } as const;
