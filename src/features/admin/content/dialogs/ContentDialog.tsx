@@ -253,6 +253,24 @@ export function ContentDialog({
     wordCount: number;
   } | null>(null);
 
+  const [editorTab, setEditorTab] = useState("editor");
+
+  // The "Original PDF" tab only makes sense for a saved, PDF-backed record.
+  // DOCX imports keep the extracted-HTML-only workflow.
+  const savedFileType = currentContent?.file_type?.toLowerCase() ?? "";
+  const importedFileType = importedDocument?.fileType?.toLowerCase() ?? "";
+  const hasOriginalPdf = Boolean(
+    content?.id &&
+      (savedFileType.includes("pdf") ||
+        importedFileType.includes("pdf") ||
+        (!savedFileType && !importedFileType)),
+  );
+
+  useEffect(() => {
+    setEditorTab("editor");
+  }, [content?.id, open]);
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-[95vh] w-[95vw] max-w-none overflow-hidden">
