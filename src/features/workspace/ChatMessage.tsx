@@ -499,12 +499,12 @@ function ProcessingIndicator({ progress, stage }: { progress?: number; stage?: s
 
 const THINKING_PHASES = [
   { after: 0, label: "Reading your question..." },
-  { after: 4, label: "Searching statutes and case law..." },
-  { after: 12, label: "Reviewing relevant precedents..." },
-  { after: 20, label: "Cross-checking legal citations..." },
-  { after: 35, label: "Verifying the analysis..." },
-  { after: 55, label: "Preparing the final response..." },
-  { after: 80, label: "Still working — complex queries may take a little longer..." },
+  { after: 8, label: "Searching statutes and case law..." },
+  { after: 24, label: "Reviewing relevant precedents..." },
+  { after: 40, label: "Cross-checking legal citations..." },
+  { after: 70, label: "Verifying the analysis..." },
+  { after: 110, label: "Preparing the final response..." },
+  { after: 160, label: "Still working — complex queries may take a little longer..." },
 ];
 
 export function TypingIndicator() {
@@ -524,7 +524,12 @@ export function TypingIndicator() {
     [...THINKING_PHASES].reverse().find((p) => elapsed >= p.after) ??
     THINKING_PHASES[0];
 
-  const progressPct = Math.round((1 - Math.exp(-elapsed / 40)) * 100);
+  const MAX_THINKING_TIME = 240;
+
+  const progressPct = Math.min(
+    100,
+    Math.round((1 - Math.exp(-elapsed / 80)) * 100),
+  );
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
