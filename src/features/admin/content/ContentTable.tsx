@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, endpoints } from "@/services/api/api";
+import { useNavigate } from "@tanstack/react-router";
 
 export interface SectionSummary {
   id: string;
@@ -88,7 +90,7 @@ export function ContentTable({
   const limit = 10;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
-
+  const navigate = useNavigate();
   // Section changes represent a new result set, so pagination must start over.
   useEffect(() => { setPage(1); }, [selectedSection?.id, search, status]);
 
@@ -212,7 +214,7 @@ export function ContentTable({
                             variant="ghost"
                             size="sm"
                             title="View content"
-                            onClick={() => onViewContent?.(item)}
+                            onClick={() => {navigate({to:`/admin/knowledge?content=${item.id}`});}}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>

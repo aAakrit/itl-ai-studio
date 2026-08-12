@@ -192,6 +192,24 @@ export function ContentDialog({
 };
 
   useEffect(() => {
+    const documentType =
+      currentContent?.document_content_type?.toLowerCase() ??
+      currentContent?.file_type?.toLowerCase() ??
+      "";
+
+    const hasExistingDocument = Boolean(
+      currentContent?.document_path ||
+      currentContent?.document_filename ||
+      currentContent?.file_name,
+    );
+
+    const isExistingPdf =
+      documentType.includes("pdf");
+
+    const isExistingWord =
+      documentType.includes("word") ||
+      documentType.includes("docx");
+
     form.reset({
       book_id: bookId,
       section_id: sectionId,
@@ -199,18 +217,62 @@ export function ContentDialog({
       reference_no: currentContent?.reference_no ?? "",
       keywords: currentContent?.keywords ?? "",
       summary: currentContent?.summary ?? "",
-      status: currentContent?.status ?? "DRAFT",
+      status: currentContent?.status ?? "ACTIVE",
       version: String(currentContent?.version ?? 1),
       content_html: currentContent?.content_html ?? currentContent?.body ?? "",
       content_text: currentContent?.content_text ?? "",
     });
-    setImportedDocument(null);
-    if (currentContent?.content_html) {
-        setContentSource("manual");
-    } else {
-        setContentSource(null);
+
+    /*
+    * Existing PDF/DOCX:
+    * Do NOT show the "Write Manually / Import" choice.
+    * Show the existing document instead.
+    */
+    if (hasExistingDocument && (isExistingPdf || isExistingWord)) {
+      setContentSource("upload");
+
+      setImportedDocument({
+        fileName:
+          currentContent?.document_filename ??
+          currentContent?.file_name ??
+          "Existing document",
+
+        fileType:
+          currentContent?.document_content_type ??
+          currentContent?.file_type ??
+          "",
+
+        pageCount:
+          currentContent?.page_count ?? null,
+        attachmentPath: currentContent?.document_path ?? null,
+        attachmentFilename: currentContent?.document_filename ?? null,
+        attachmentContentType: currentContent?.document_content_type ?? null,
+        attachmentSize: currentContent?.document_size ?? null,
+      });
+
+      return;
     }
-  }, [bookId, currentContent, form, sectionId]);
+
+    /*
+    * Existing manually-authored HTML.
+    */
+    if (currentContent?.content_html) {
+      setContentSource("manual");
+      setImportedDocument(null);
+      return;
+    }
+
+    /*
+    * New content.
+    */
+    setContentSource(null);
+    setImportedDocument(null);
+  }, [
+    bookId,
+    sectionId,
+    currentContent,
+    form,
+  ]);
 
   const mutation = useMutation({
     mutationFn: async (values: ContentFormValues) => {
@@ -583,7 +645,7 @@ export function ContentDialog({
                             <div className="rounded-lg border bg-green-50 p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="font-medium text-foreground">
+                                        <div className="font-medium text-muted-foreground">
                                             ✓ {importedDocument.fileName}
                                         </div>
                                         <div className="text-sm text-muted-foreground">
