@@ -259,16 +259,24 @@ export function ContentDialog({
   // DOCX imports keep the extracted-HTML-only workflow.
   const savedFileType = currentContent?.file_type?.toLowerCase() ?? "";
   const importedFileType = importedDocument?.fileType?.toLowerCase() ?? "";
-  const hasOriginalPdf = Boolean(
-    content?.id &&
-      (savedFileType.includes("pdf") ||
-        importedFileType.includes("pdf") ||
-        (!savedFileType && !importedFileType)),
+  const combinedFileType = `${savedFileType} ${importedFileType}`;
+  const knownPdf = combinedFileType.includes("pdf");
+  const knownDocx =
+    combinedFileType.includes("docx") || combinedFileType.includes("word");
+
+  // When the record does not expose a file type, probe the PDF endpoint once
+  // (the result is shared with the embedded viewer through the query cache).
+  const pdfProbe = useContentPdf(
+    content?.id,
+    open && Boolean(content?.id) && !knownPdf && !knownDocx,
   );
+
+  const hasOriginalPdf = Boolean(content?.id) && (knownPdf || pdfProbe.hasPdf === true);
 
   useEffect(() => {
     setEditorTab("editor");
   }, [content?.id, open]);
+
 
 
   return (
