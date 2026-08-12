@@ -22,7 +22,7 @@ async function fetchSectionContents(sectionId: string) {
     items?: KnowledgeContentSummary[];
     results?: KnowledgeContentSummary[];
   }>(endpoints.books.contents, {
-    params: { section_id: sectionId, page: 1, limit: 200 },
+    params: { section_id: sectionId, page: 1, limit: 100 },
   });
 
   return data.items ?? data.results ?? [];
