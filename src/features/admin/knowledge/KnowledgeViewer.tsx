@@ -28,14 +28,19 @@ export function KnowledgeViewer({ content }: KnowledgeViewerProps) {
 
   const current = detail ?? (content as KnowledgeContentDetail | null);
   const html = contentHtmlOf(current);
-  const pdfFlag = contentHasPdf(current);
-  // Unknown file_type means we let the viewer probe the endpoint itself.
-  const pdfPossible = pdfFlag !== false;
-  const [tab, setTab] = useState<string>("pdf");
+  const knownPdf = contentHasPdf(current);
+
+  // When the record does not expose a file type, probe the endpoint once; the
+  // blob is shared with the embedded viewer through the query cache.
+  const pdfProbe = useContentPdf(current?.id, Boolean(current?.id) && knownPdf === undefined);
+  const pdfAvailable = knownPdf === true || pdfProbe.hasPdf === true;
+
+  const [tab, setTab] = useState<string>("html");
 
   useEffect(() => {
-    setTab(pdfPossible ? "pdf" : "html");
-  }, [content?.id, pdfPossible]);
+    setTab(pdfAvailable ? "pdf" : "html");
+  }, [content?.id, pdfAvailable]);
+
 
   if (!content) {
     return (
