@@ -179,7 +179,7 @@ export function ContentDialog({
     return;
   }
 
-  if (file.size > 200 * 1024 * 1024) {
+  if (file.size > 205 * 1024 * 1024) {
     toast.error("Maximum file size is 200 MB.");
     event.target.value = "";
     return;
@@ -346,15 +346,21 @@ export function ContentDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["section-contents", sectionId],
+        exact: false,
       });
+      await queryClient.refetchQueries({
+        queryKey: ["section-contents", sectionId],
+        exact: false,
+      });
+
       toast.success(
-        mode === "edit" ? "Content updated successfully." : "Content created successfully.",
+        mode === "edit"
+          ? "Content updated successfully."
+          : "Content created successfully.",
       );
+
       onOpenChange(false);
       form.reset();
-    },
-    onError: () => {
-      toast.error(mode === "edit" ? "Failed to update content." : "Failed to create content.");
     },
   });
 
@@ -636,7 +642,7 @@ export function ContentDialog({
                                 </Button>
 
                                 <p className="mt-4 text-xs text-muted-foreground">
-                                  Supported: PDF, DOCX • Max 20 MB
+                                  Supported: PDF, DOCX • Max 200 MB
                                 </p>
                               </div>
                             )
