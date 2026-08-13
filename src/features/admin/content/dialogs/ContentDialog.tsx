@@ -192,6 +192,8 @@ export function ContentDialog({
 };
 
   useEffect(() => {
+    if (!open) return;
+
     const documentType =
       currentContent?.document_content_type?.toLowerCase() ??
       currentContent?.file_type?.toLowerCase() ??
@@ -268,6 +270,8 @@ export function ContentDialog({
     setContentSource(null);
     setImportedDocument(null);
   }, [
+    open,
+    mode,
     bookId,
     sectionId,
     currentContent,
