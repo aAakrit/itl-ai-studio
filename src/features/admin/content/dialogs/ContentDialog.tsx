@@ -270,6 +270,8 @@ export function ContentDialog({
     setContentSource(null);
     setImportedDocument(null);
   }, [
+    open,
+    mode,
     bookId,
     sectionId,
     currentContent,
