@@ -592,678 +592,305 @@ function AdminContentPage() {
         await contentDeleteMutation.mutateAsync(deleteTarget.id);
     };
 
-        return (
+    const totalBooks = data?.total ?? books.length;
 
-        <div className="space-y-6">
+    return (
+        <div className="space-y-5">
 
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-                <div>
-
-                    <h1 className="text-3xl font-bold">
-
-                        Books Management
-
-                    </h1>
-
-                    <p className="text-muted-foreground">
-
-                        Manage Books, Sections and Contents
-
+            {/* Page header */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                        Library Management
                     </p>
-
+                    <h1 className="text-2xl font-semibold tracking-tight">Books, Sections &amp; Content</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Build the structure here — everything you publish appears in the Knowledge Base.
+                    </p>
                 </div>
-
-                <Button onClick={openCreateBookDialog}>
-
-                    <Plus className="mr-2 h-4 w-4"/>
-
+                <Button onClick={openCreateBookDialog} className="shrink-0">
+                    <Plus className="mr-2 h-4 w-4" />
                     New Book
-
                 </Button>
-
             </div>
 
-            <Card>
-
-                <CardHeader>
-
-                    <CardTitle>
-
-                        Books
-
-                    </CardTitle>
-
-                </CardHeader>
-
-                <CardContent>
-
-                  <div className="space-y-6">
-
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
-        <div className="flex flex-1 gap-3">
-
-            <div className="relative flex-1 max-w-md">
-
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>
-
-                <Input
-                    className="pl-10"
-                    placeholder="Search books..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-
-            </div>
-
-            <Select
-                value={status}
-                onValueChange={setStatus}
-            >
-
-                <SelectTrigger className="w-[180px]">
-
-                    <SelectValue/>
-
-                </SelectTrigger>
-
-                <SelectContent>
-
-                    <SelectItem value="ALL">
-
-                        All Status
-
-                    </SelectItem>
-
-                    <SelectItem value="ACTIVE">
-
-                        Active
-
-                    </SelectItem>
-
-                    <SelectItem value="DRAFT">
-
-                        Draft
-
-                    </SelectItem>
-
-                    <SelectItem value="ARCHIVED">
-
-                        Archived
-
-                    </SelectItem>
-
-                </SelectContent>
-
-            </Select>
-
-        </div>
-
-        <Button
-            variant="outline"
-            onClick={() => refetch()}
-        >
-
-            Refresh
-
-        </Button>
-
-    </div>
-
-    <Separator/>
-
-    {
-        isLoading ? (
-
-            <div className="space-y-3">
-
-                {Array.from({ length: 8 }).map((_, i) => (
-
-                    <Skeleton
-                        key={i}
-                        className="h-12 w-full"
-                    />
-
-                ))}
-
-            </div>
-
-        ) : books.length === 0 ? (
-
-            <div className="py-16 text-center">
-
-                <BookOpen className="mx-auto h-14 w-14 text-muted-foreground"/>
-
-                <h3 className="mt-4 text-lg font-semibold">
-
-                    No Books Found
-
-                </h3>
-
-                <p className="text-muted-foreground">
-
-                    Click "New Book" to create your first book.
-
-                </p>
-
-            </div>
-
-        ) : (
-
-            <Table>
-
-                <TableHeader>
-
-                    <TableRow>
-
-                        <TableHead>
-
-                            Book
-
-                        </TableHead>
-
-                        <TableHead>
-
-                            Slug
-
-                        </TableHead>
-
-                        <TableHead>
-
-                            Status
-
-                        </TableHead>
-
-                        <TableHead>
-
-                            Created
-
-                        </TableHead>
-
-                    </TableRow>
-
-                </TableHeader>
-
-                <TableBody>
-
-                    {
-
-                        books.map((book) => (
-
-                            <TableRow
-                                key={book.id}
-                                className={`cursor-pointer transition-colors hover:bg-muted/60 ${
-                                    selectedBook?.id === book.id
-                                        ? "bg-muted"
-                                        : ""
-                                }`}
-                                onClick={() => setSelectedBook(book)}
-                            >
-
-                                <TableCell>
-
-                                    <div>
-
-                                        <div className="font-medium">
-
-                                            {book.name}
-
-                                        </div>
-
-                                        <div className="text-xs text-muted-foreground">
-
-                                            {book.description || "-"}
-
-                                        </div>
-
-                                    </div>
-
-                                </TableCell>
-
-                                <TableCell>
-
-                                    {book.slug}
-
-                                </TableCell>
-
-                                <TableCell>
-
-                                    <Badge
-                                        variant={
-                                            book.status === "ACTIVE"
-                                                ? "default"
-                                                : "secondary"
-                                        }
-                                    >
-
-                                        {book.status}
-
-                                    </Badge>
-
-                                </TableCell>
-
-                                <TableCell>
-
-                                    {
-
-                                        new Date(book.created_at)
-                                            .toLocaleDateString()
-
-                                    }
-
-                                </TableCell>
-
-                            </TableRow>
-
-                        ))
-
-                    }
-
-                </TableBody>
-
-            </Table>
-
-        )
-
-    }
-
-    {
-
-        data && (
-
-            <div className="flex items-center justify-between pt-4">
-
-                <div className="text-sm text-muted-foreground">
-
-                    Showing {books.length} of {data.total} books
-
-                </div>
-
-                <div className="flex gap-2">
-
-                    <Button
-                        variant="outline"
-                        disabled={page === 1}
-                        onClick={() => setPage((p) => p - 1)}
-                    >
-
-                        Previous
-
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        disabled={page * limit >= data.total}
-                        onClick={() => setPage((p) => p + 1)}
-                    >
-
-                        Next
-
-                    </Button>
-
-                </div>
-
-            </div>
-
-        )
-
-    }
-
-</div>
-
-                </CardContent>
-
-            </Card>
-
-            <Card className="overflow-hidden border-border/60">
-
-                <div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
-
-                    <div>
-
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-
-                            Selected Book Workspace
-
-                        </p>
-
-                        <h2 className="mt-1 text-xl font-semibold">
-
-                            {
-
-                                selectedBook?.name ?? "Choose a book"
-
-                            }
-
-                        </h2>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-
-                            <span>
-
-                                {selectedBook?.slug ?? "—"}
-
-                            </span>
-
-                            <span>•</span>
-
-                            <span>
-
-                                {selectedBook
-                                    ? formatBookDate(selectedBook.updated_at)
-                                    : "No book selected"}
-
-                            </span>
-
+            {/* 3-pane workspace: Books | Sections | Content */}
+            <div className="grid gap-4 xl:grid-cols-[300px_320px_minmax(0,1fr)]">
+
+                {/* Books pane */}
+                <Card className="flex flex-col overflow-hidden border-border/60">
+                    <div className="space-y-3 border-b border-border/60 p-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                Books
+                                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                    {totalBooks}
+                                </span>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetch()} aria-label="Refresh books">
+                                <RefreshCcw className="h-3.5 w-3.5" />
+                            </Button>
                         </div>
 
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                className="h-9 pl-9 text-sm"
+                                placeholder="Search books…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">All status</SelectItem>
+                                <SelectItem value="ACTIVE">Active</SelectItem>
+                                <SelectItem value="DRAFT">Draft</SelectItem>
+                                <SelectItem value="ARCHIVED">Archived</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex-1 p-2">
+                        {isLoading ? (
+                            <div className="space-y-2 p-1">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <Skeleton key={`book-skeleton-${i}`} className="h-14 w-full" />
+                                ))}
+                            </div>
+                        ) : books.length === 0 ? (
+                            <div className="px-4 py-12 text-center">
+                                <BookOpen className="mx-auto h-8 w-8 text-muted-foreground/60" />
+                                <p className="mt-3 text-sm font-medium">No books yet</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Create your first book to start adding sections.
+                                </p>
+                            </div>
+                        ) : (
+                            <ScrollArea className="h-[440px] pr-2">
+                                <div className="space-y-1">
+                                    {books.map((book) => {
+                                        const active = selectedBook?.id === book.id;
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={book.id}
+                                                onClick={() => setSelectedBook(book)}
+                                                className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                                                    active
+                                                        ? "border-primary/40 bg-primary/8"
+                                                        : "border-transparent hover:bg-secondary"
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <span className={`truncate text-sm font-medium ${active ? "text-primary" : ""}`}>
+                                                        {book.name}
+                                                    </span>
+                                                    <Badge
+                                                        variant={book.status === "ACTIVE" ? "default" : "secondary"}
+                                                        className="shrink-0 text-[10px]"
+                                                    >
+                                                        {book.status}
+                                                    </Badge>
+                                                </div>
+                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                                    {book.slug} • {formatBookDate(book.created_at)}
+                                                </p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </ScrollArea>
+                        )}
+                    </div>
+
+                    {data && totalBooks > limit && (
+                        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+                            <span className="text-xs text-muted-foreground">
+                                {books.length} of {totalBooks}
+                            </span>
+                            <div className="flex gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    disabled={page === 1}
+                                    onClick={() => setPage((p) => p - 1)}
+                                    aria-label="Previous page"
+                                >
+                                    <ChevronLeft className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    disabled={page * limit >= totalBooks}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    aria-label="Next page"
+                                >
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </Card>
+
+                {/* Sections pane */}
+                <Card className="flex flex-col overflow-hidden border-border/60">
+                    <div className="space-y-3 border-b border-border/60 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 text-sm font-semibold">
+                                    <FolderTree className="h-4 w-4 text-primary" />
+                                    Sections
+                                </div>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                    {!selectedBook
+                                        ? "Select a book first"
+                                        : sectionsLoading
+                                            ? "Loading…"
+                                            : `${sectionCount} in ${selectedBook.name}`}
+                                </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => refetchSections()}
+                                    disabled={!selectedBook || sectionsLoading}
+                                    aria-label="Refresh sections"
+                                >
+                                    <RefreshCcw className="h-3.5 w-3.5" />
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Book actions" disabled={!selectedBook}>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={openEditBookDialog}>
+                                            <Pencil className="mr-2 h-3.5 w-3.5" /> Edit book
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={expandAllSections}>Expand all</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={collapseAllSections}>Collapse all</DropdownMenuItem>
+                                        <DropdownMenuItem className="text-destructive" onClick={openDeleteBookDialog}>
+                                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete book
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                className="h-9 pl-9 text-sm"
+                                placeholder="Search sections…"
+                                value={sectionSearch}
+                                onChange={(e) => setSectionSearch(e.target.value)}
+                                disabled={!selectedBook}
+                            />
+                        </div>
 
                         <Button
+                            size="sm"
                             variant="outline"
-                            size="sm"
-                            onClick={() => refetchSections()}
-                            disabled={!selectedBook}
-                        >
-
-                            <RefreshCcw className="mr-2 h-4 w-4"/>
-
-                            Refresh
-
-                        </Button>
-
-                        <Button
-                            size="sm"
+                            className="w-full"
                             disabled={!selectedBook}
                             onClick={openCreateSectionDialog}
                         >
-
-                            <Plus className="mr-2 h-4 w-4"/>
-
+                            <Plus className="mr-2 h-4 w-4" />
                             Add Section
-
                         </Button>
-
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={!selectedSection}
-                            onClick={openCreateContentDialog}
-                        >
-
-                            <Plus className="mr-2 h-4 w-4"/>
-
-                            Add Content
-
-                        </Button>
-
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={!selectedBook}
-                            onClick={openEditBookDialog}
-                        >
-
-                            Edit Book
-
-                        </Button>
-
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={!selectedBook}
-                            onClick={openDeleteBookDialog}
-                        >
-
-                            Delete Book
-
-                        </Button>
-
                     </div>
 
-                </div>
-
-                {
-
-                    !selectedBook ? (
-
-                        <div className="p-8 text-center text-sm text-muted-foreground">
-
-                            Select a book from the table above to open the workspace.
-
-                        </div>
-
-                    ) : (
-
-                        <div className="grid gap-4 p-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-
-                            <div className="rounded-xl border bg-muted/20 p-4">
-
-                                <div className="flex flex-col gap-3">
-
-                                    <div className="flex items-start justify-between gap-2">
-
-                                        <div>
-
-                                            <p className="text-sm font-semibold">
-
-                                                Section Tree
-
-                                            </p>
-
-                                            <p className="text-xs text-muted-foreground">
-
-                                                {
-
-                                                    sectionsLoading
-                                                        ? "Loading sections..."
-                                                        : `${sectionCount} sections`
-
-                                                }
-
-                                            </p>
-
-                                        </div>
-
-                                        <div className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
-
-                                            {selectedBook.status}
-
-                                        </div>
-
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={expandAllSections}
-                                            disabled={!selectedBook || sectionsLoading || sectionIds.length === 0}
-                                        >
-
-                                            Expand All
-
-                                        </Button>
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={collapseAllSections}
-                                            disabled={!selectedBook || sectionsLoading || sectionIds.length === 0}
-                                        >
-
-                                            Collapse All
-
-                                        </Button>
-
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => refetchSections()}
-                                            disabled={!selectedBook || sectionsLoading}
-                                        >
-
-                                            <RefreshCcw className="mr-2 h-4 w-4"/>
-
-                                            Refresh
-
-                                        </Button>
-
-                                    </div>
-
-                                    <div className="relative">
-
-                                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>
-
-                                        <Input
-                                            className="pl-10"
-                                            placeholder="Search sections..."
-                                            value={sectionSearch}
-                                            onChange={(e) => setSectionSearch(e.target.value)}
+                    <div className="flex-1 p-2">
+                        {!selectedBook ? (
+                            <div className="px-4 py-12 text-center text-xs text-muted-foreground">
+                                Pick a book to see its section tree.
+                            </div>
+                        ) : sectionsLoading ? (
+                            <div className="space-y-2 p-1">
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <Skeleton key={`section-skeleton-${index}`} className="h-9 w-full" />
+                                ))}
+                            </div>
+                        ) : filteredSectionTree.length === 0 ? (
+                            <div className="px-4 py-12 text-center text-xs text-muted-foreground">
+                                {sectionSearch ? "No sections match this search." : "No sections yet — add the first one."}
+                            </div>
+                        ) : (
+                            <ScrollArea className="h-[520px] pr-2">
+                                <div className="space-y-0.5">
+                                    {filteredSectionTree.map((node) => (
+                                        <SectionNode
+                                            key={node.id}
+                                            node={node}
+                                            level={0}
+                                            expanded={expanded}
+                                            toggle={toggleSection}
+                                            selectedId={selectedSection?.id}
+                                            onSelect={(nextNode) => setSelectedSection(nextNode)}
+                                            onAddChild={openCreateChildSectionDialog}
+                                            onEdit={openEditSectionDialog}
+                                            onDelete={openDeleteSectionDialog}
                                         />
-
-                                    </div>
-
-                                    <div className="flex items-center justify-between gap-2">
-
-                                        <Button
-                                            size="sm"
-                                            className="w-full"
-                                            disabled={!selectedBook}
-                                            onClick={openCreateSectionDialog}
-                                        >
-
-                                            <Plus className="mr-2 h-4 w-4"/>
-
-                                            Add Root Section
-
-                                        </Button>
-
-                                    </div>
-
+                                    ))}
                                 </div>
+                            </ScrollArea>
+                        )}
+                    </div>
+                </Card>
 
-                                <div className="mt-4">
-
-                                    {
-
-                                        sectionsLoading ? (
-
-                                            <div className="space-y-3">
-
-                                                {Array.from({ length: 5 }).map((_, index) => (
-
-                                                    <Skeleton
-                                                        key={`section-skeleton-${index}`}
-                                                        className="h-10 w-full"
-                                                    />
-
-                                                ))}
-
-                                            </div>
-
-                                        ) : filteredSectionTree.length === 0 ? (
-
-                                            <div className="rounded-lg border border-dashed border-border/60 bg-background/50 px-4 py-10 text-center text-sm text-muted-foreground">
-
-                                                No sections match this search.
-
-                                            </div>
-
-                                        ) : (
-
-                                            <ScrollArea className="h-[420px] pr-2">
-
-                                                <div className="space-y-1">
-
-                                                    {
-
-                                                        filteredSectionTree.map((node) => (
-
-                                                            <SectionNode
-                                                                key={node.id}
-                                                                node={node}
-                                                                level={0}
-                                                                expanded={expanded}
-                                                                toggle={toggleSection}
-                                                                selectedId={selectedSection?.id}
-                                                                onSelect={(nextNode) => setSelectedSection(nextNode)}
-                                                                onAddChild={openCreateChildSectionDialog}
-                                                                onEdit={openEditSectionDialog}
-                                                                onDelete={openDeleteSectionDialog}
-                                                            />
-
-                                                        ))
-
-                                                    }
-
-                                                </div>
-
-                                            </ScrollArea>
-
-                                        )
-
-                                    }
-
-                                </div>
-
+                {/* Content pane */}
+                <Card className="flex flex-col overflow-hidden border-border/60">
+                    <div className="flex flex-col gap-3 border-b border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                                <FileText className="h-4 w-4 text-primary" />
+                                Content
                             </div>
-
-                            <div className="rounded-xl border bg-muted/20 p-4">
-
-                                <div className="flex items-center justify-between gap-2">
-
-                                    <div>
-
-                                        <p className="text-sm font-semibold">
-
-                                            Content Workspace
-
-                                        </p>
-
-                                        <p className="text-xs text-muted-foreground">
-
-                                            Connected to the selected section.
-
-                                        </p>
-
-                                    </div>
-
-                                    <div className="flex items-center gap-2 rounded-md bg-background px-2 py-1 text-xs font-medium text-muted-foreground">
-
-                                        <LayoutGrid className="h-3.5 w-3.5"/>
-
-                                        2-column layout
-
-                                    </div>
-
-                                </div>
-
-                                <div className="mt-4">
-
-                                    <ContentTable
-                                        selectedSection={selectedSection}
-                                        onAddContent={openCreateContentDialog}
-                                        onViewContent={openViewContentDialog}
-                                        onEditContent={openEditContentDialog}
-                                        onDeleteContent={openDeleteContentDialog}
-                                    />
-
-                                </div>
-
-                            </div>
-
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                {selectedSection
+                                    ? `${selectedBook?.name ?? ""} › ${selectedSection.title}`
+                                    : "Select a section to manage its content."}
+                            </p>
                         </div>
+                        <Button size="sm" disabled={!selectedSection} onClick={openCreateContentDialog}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Content
+                        </Button>
+                    </div>
 
-                    )
+                    <div className="p-4">
+                        {!selectedSection ? (
+                            <div className="rounded-xl border border-dashed border-border/60 px-6 py-16 text-center">
+                                <FileText className="mx-auto h-8 w-8 text-muted-foreground/60" />
+                                <p className="mt-3 text-sm font-medium">Nothing selected</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Choose a book, then a section, to add PDFs, Word documents or written content.
+                                </p>
+                            </div>
+                        ) : (
+                            <ContentTable
+                                selectedSection={selectedSection}
+                                onAddContent={openCreateContentDialog}
+                                onViewContent={openViewContentDialog}
+                                onEditContent={openEditContentDialog}
+                                onDeleteContent={openDeleteContentDialog}
+                            />
+                        )}
+                    </div>
+                </Card>
 
-                }
-
-            </Card>
+            </div>
 
             <BookDialog
                 open={bookDialogOpen}
@@ -1287,16 +914,19 @@ function AdminContentPage() {
                 onOpenChange={setSectionDialogOpen}
             />
 
-            <ContentDialog
-                open={contentDialogOpen}
-                mode={contentDialogMode}
-                content={editingContent}
-                bookId={selectedBook?.id ?? ""}
-                sectionId={selectedSection?.id ?? ""}
-                bookName={selectedBook?.name}
-                sectionTitle={selectedSection?.title}
-                onOpenChange={setContentDialogOpen}
-            />
+            {contentDialogOpen && (
+                <ContentDialog
+                    key={`${contentDialogMode}-${editingContent?.id ?? "new"}-${selectedSection?.id ?? ""}`}
+                    open={contentDialogOpen}
+                    mode={contentDialogMode}
+                    content={editingContent}
+                    bookId={selectedBook?.id ?? ""}
+                    sectionId={selectedSection?.id ?? ""}
+                    bookName={selectedBook?.name}
+                    sectionTitle={selectedSection?.title}
+                    onOpenChange={setContentDialogOpen}
+                />
+            )}
 
             <DeleteConfirmDialog
                 open={deleteDialogOpen}
@@ -1312,7 +942,6 @@ function AdminContentPage() {
             />
 
         </div>
-
     );
-
 }
+
