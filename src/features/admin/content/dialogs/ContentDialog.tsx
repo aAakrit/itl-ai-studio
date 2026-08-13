@@ -179,8 +179,8 @@ export function ContentDialog({
     return;
   }
 
-  if (file.size > 20 * 1024 * 1024) {
-    toast.error("Maximum file size is 20 MB.");
+  if (file.size > 200 * 1024 * 1024) {
+    toast.error("Maximum file size is 200 MB.");
     event.target.value = "";
     return;
   }
