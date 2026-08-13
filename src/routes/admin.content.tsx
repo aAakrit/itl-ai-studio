@@ -21,12 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
 
@@ -40,24 +35,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
 import { Badge } from "@/components/ui/badge";
 
-import {
-  Skeleton,
-} from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { Separator } from "@/components/ui/separator";
 
 import { ContentTable } from "@/features/admin/content/ContentTable";
 import { SectionNode } from "@/features/admin/content/SectionNode";
