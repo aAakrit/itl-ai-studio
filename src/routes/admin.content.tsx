@@ -2,7 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, BookOpen, LayoutGrid, RefreshCcw } from "lucide-react";
+import {
+  Search,
+  BookOpen,
+  RefreshCcw,
+  ChevronLeft,
+  ChevronRight,
+  FolderTree,
+  FileText,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Card,

@@ -192,6 +192,8 @@ export function ContentDialog({
 };
 
   useEffect(() => {
+    if (!open) return;
+
     const documentType =
       currentContent?.document_content_type?.toLowerCase() ??
       currentContent?.file_type?.toLowerCase() ??
