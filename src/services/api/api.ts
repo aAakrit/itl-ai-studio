@@ -221,6 +221,12 @@ export const endpoints = {
     messageFeedback: (id: string) => `/ai/messages/${id}/feedback`,
     messageRefine: (id: string) => `/ai/messages/${id}/refine`,
     noticeGenerate: "/ai/notice/generate",
+    // Staged Notice Agent workflow (uploaded -> analysed -> drafted -> refined)
+    noticeAnalyze: "/ai/notice/analyze",
+    noticeAnalyzeFile: "/ai/notice/analyze-file",
+    noticeDraft: "/ai/notice/draft",
+    noticeRefine: "/ai/notice/refine",
+    noticeAsk: "/ai/notice/ask",
     summarize: "/ai/summarize",
     summarizeStatus: (jobId: string) => `/ai/summarize/status/${jobId}`,
     summarizeResult: (jobId: string) => `/ai/summarize/result/${jobId}`,

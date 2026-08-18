@@ -223,16 +223,34 @@ export function WorkspaceShell() {
         const backendConversationId = isNewConversation ? null : localThreadId;
         const context = { moduleId: requestModuleId, toolId: requestToolId };
 
-        const { userMessage, assistantMessage, thread: backendThread } = isFileTool(requestToolId)
-          ? await chatService.sendFileMessage(
-              backendConversationId,
-              prompt,
-              context,
-              file,
-              setUploadProgress,
-              controller.signal,
-            )
-          : await chatService.sendMessage(backendConversationId, prompt, context, controller.signal);
+        // Notice Reply now runs the staged workflow (analyse -> draft ->
+        // refine): the composer's first message in a new conversation
+        // always analyses the pasted/attached notice; a typed follow-up in
+        // an existing notice conversation is a grounded question (§B5),
+        // never a redraft — drafting/refining happen from the dedicated
+        // controls on the notice card itself, not free text here.
+        const { userMessage, assistantMessage, thread: backendThread } =
+          requestToolId === "notice-reply"
+            ? isNewConversation
+              ? await chatService.analyzeNotice(
+                  backendConversationId,
+                  prompt,
+                  context,
+                  file,
+                  setUploadProgress,
+                  controller.signal,
+                )
+              : await chatService.askNotice(localThreadId!, prompt, context, controller.signal)
+            : isFileTool(requestToolId)
+              ? await chatService.sendFileMessage(
+                  backendConversationId,
+                  prompt,
+                  context,
+                  file,
+                  setUploadProgress,
+                  controller.signal,
+                )
+              : await chatService.sendMessage(backendConversationId, prompt, context, controller.signal);
 
         if (isNewConversation && backendThread) {
           // Swap the temporary local thread for the real, backend-assigned one.
@@ -287,6 +305,55 @@ export function WorkspaceShell() {
       upsertThread,
       replaceMessage,
     ],
+  );
+
+  // Stage 2/3 of the Notice Agent workflow (draft / refine) are triggered
+  // from controls inside the notice card itself (NoticeWorkflowCard), not
+  // the composer — these are the handlers it calls. Kept close to
+  // handleSend's error/append pattern but simpler: no optimistic user
+  // bubble is needed since the triggering action (a button click / mini
+  // form submit) is already visible feedback.
+  const handleNoticeDraft = useCallback(
+    async (threadId: string, userInputs?: Record<string, unknown>) => {
+      setIsSending(true);
+      try {
+        const { assistantMessage, thread: backendThread } = await chatService.draftNotice(threadId, userInputs, {
+          moduleId: activeModuleId,
+          toolId: activeToolId,
+        });
+        addMessage(threadId, assistantMessage);
+        if (backendThread) {
+          upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
+        }
+      } catch {
+        addMessage(threadId, createErrorMessage());
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [activeModuleId, activeToolId, addMessage, upsertThread],
+  );
+
+  const handleNoticeRefine = useCallback(
+    async (threadId: string, instruction: string) => {
+      setIsSending(true);
+      try {
+        const { assistantMessage, thread: backendThread } = await chatService.refineNoticeReply(
+          threadId,
+          instruction,
+          { moduleId: activeModuleId, toolId: activeToolId },
+        );
+        addMessage(threadId, assistantMessage);
+        if (backendThread) {
+          upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
+        }
+      } catch {
+        addMessage(threadId, createErrorMessage());
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [activeModuleId, activeToolId, addMessage, upsertThread],
   );
 
   return (
@@ -368,8 +435,16 @@ export function WorkspaceShell() {
           <div className="mx-auto px-4 py-8">
             {thread && thread.messages.length > 0 ? (
               <div className="space-y-5">
-                {thread.messages.map((m) => (
-                  <ChatMessageBubble key={m.id} message={m} threadId={thread.id} />
+                {thread.messages.map((m, i) => (
+                  <ChatMessageBubble
+                    key={m.id}
+                    message={m}
+                    threadId={thread.id}
+                    isLatest={i === thread.messages.length - 1}
+                    onNoticeDraft={handleNoticeDraft}
+                    onNoticeRefine={handleNoticeRefine}
+                    noticeActionPending={isSending}
+                  />
                 ))}
                 {isSending && <TypingIndicator />}
                 <div ref={scrollAnchorRef} />

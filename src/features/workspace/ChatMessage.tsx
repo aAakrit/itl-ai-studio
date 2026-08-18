@@ -7,16 +7,19 @@ import { toast } from "sonner";
 import {
   Copy, Check, Download, Wand2, ThumbsDown, ThumbsUp, Scale, FileText, BookOpen, Bell,
   AlertTriangle, Loader2, HelpCircle, Microscope, Paperclip, FileType, Gavel, ListOrdered,
-  ChevronDown, FileArchive,
+  ChevronDown, FileArchive, CalendarClock, IndianRupee, CheckCircle2, XCircle,
+  ShieldAlert, MessageCircleQuestion, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/store";
 import { chatService } from "@/services/workspace.service";
-import type { ChatMessage, Citation } from "@/types";
+import type { ChatMessage, Citation, NoticeWorkflowData } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +51,22 @@ function preprocessSourceLinks(content: string, messageId: string): string {
   return content.replace(/\(Source (\d+)\)/g, (match, n) => `[${match}](#source-${messageId}-${n})`);
 }
 
-export function ChatMessageBubble({ message, threadId }: { message: ChatMessage; threadId: string }) {
+export function ChatMessageBubble({
+  message,
+  threadId,
+  isLatest = false,
+  onNoticeDraft,
+  onNoticeRefine,
+  noticeActionPending = false,
+}: {
+  message: ChatMessage;
+  threadId: string;
+  /** Only the latest message in a thread shows interactive notice controls (draft/refine forms). */
+  isLatest?: boolean;
+  onNoticeDraft?: (threadId: string, userInputs?: Record<string, unknown>) => void;
+  onNoticeRefine?: (threadId: string, instruction: string) => void;
+  noticeActionPending?: boolean;
+}) {
   const isUser = message.role === "user";
   const isError = message.status === "error";
   const isPending = message.status === "pending";
@@ -242,6 +260,17 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
           )}
         </div>
 
+        {!isUser && message.notice && (
+          <NoticeWorkflowCard
+            threadId={threadId}
+            notice={message.notice}
+            isLatest={isLatest}
+            pending={noticeActionPending}
+            onDraft={onNoticeDraft}
+            onRefine={onNoticeRefine}
+          />
+        )}
+
         {!isUser && !isError && !isClarification && !isProcessing && message.deepResearchUsed && (
           <div className="mt-2">
             <Badge variant="outline" className="gap-1 rounded-full border-violet-500/30 bg-violet-500/10 py-0.5 text-[10px] text-violet-600">
@@ -316,6 +345,267 @@ export function ChatMessageBubble({ message, threadId }: { message: ChatMessage;
         )}
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * Interactive panel for the staged Notice Agent workflow, rendered below
+ * the markdown answer on any assistant message that carries `notice` data.
+ * Only the *latest* message in a thread shows the interactive bits (the
+ * optional-inputs form, draft/refine buttons) — earlier stages render
+ * read-only so the transcript stays an honest history of what happened.
+ */
+function NoticeWorkflowCard({
+  threadId,
+  notice,
+  isLatest,
+  pending,
+  onDraft,
+  onRefine,
+}: {
+  threadId: string;
+  notice: NoticeWorkflowData;
+  isLatest: boolean;
+  pending: boolean;
+  onDraft?: (threadId: string, userInputs?: Record<string, unknown>) => void;
+  onRefine?: (threadId: string, instruction: string) => void;
+}) {
+  const [showOptionalInputs, setShowOptionalInputs] = useState(false);
+  const [briefFacts, setBriefFacts] = useState("");
+  const [explanation, setExplanation] = useState("");
+  const [legalGrounds, setLegalGrounds] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [supportingDocs, setSupportingDocs] = useState("");
+  const [refineInstruction, setRefineInstruction] = useState("");
+
+  const stage = notice.stage;
+  const amount = notice.noticeSummary?.amountProposed;
+  const currency = amount?.currency ?? "INR";
+
+  const handleDraftNow = () => onDraft?.(threadId, undefined);
+
+  const handleDraftWithDetails = () => {
+    const inputs: Record<string, unknown> = {};
+    if (briefFacts.trim()) inputs.brief_facts = briefFacts.trim();
+    if (explanation.trim()) inputs.explanation = explanation.trim();
+    if (legalGrounds.trim()) inputs.legal_grounds = legalGrounds.trim();
+    if (additionalInfo.trim()) inputs.additional_info = additionalInfo.trim();
+    if (supportingDocs.trim()) {
+      inputs.supporting_documents = supportingDocs
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    onDraft?.(threadId, Object.keys(inputs).length ? inputs : undefined);
+  };
+
+  const handleRefineSubmit = () => {
+    const instruction = refineInstruction.trim();
+    if (!instruction) return;
+    onRefine?.(threadId, instruction);
+    setRefineInstruction("");
+  };
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-border/60 bg-secondary/30 p-3">
+      {/* Stage 2/3 metadata — reply form, deadline, fraud-track, allegation coverage */}
+      {(stage === "drafted" || stage === "refined") && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {notice.replyForm && (
+              <Badge variant="outline" className="gap-1 rounded-full py-0.5 text-[10px]">
+                <FileText className="h-2.5 w-2.5" /> {notice.replyForm}
+              </Badge>
+            )}
+            {notice.deadline && (
+              <Badge variant="outline" className="gap-1 rounded-full py-0.5 text-[10px]">
+                <CalendarClock className="h-2.5 w-2.5" /> Due {notice.deadline}
+              </Badge>
+            )}
+            {notice.fraudTrack && (
+              <Badge variant="outline" className="gap-1 rounded-full border-destructive/30 bg-destructive/10 py-0.5 text-[10px] text-destructive">
+                <ShieldAlert className="h-2.5 w-2.5" /> Fraud track (Sec. 74)
+              </Badge>
+            )}
+            {typeof notice.revision === "number" && (
+              <Badge variant="outline" className="gap-1 rounded-full py-0.5 text-[10px]">
+                Revision {notice.revision}
+              </Badge>
+            )}
+          </div>
+
+          {notice.changesSummary && notice.changesSummary.length > 0 && (
+            <div className="text-[12px] text-muted-foreground">
+              <span className="font-medium text-foreground">Changed in this revision: </span>
+              {notice.changesSummary.join("; ")}
+            </div>
+          )}
+
+          {notice.allegationCoverage && notice.allegationCoverage.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] font-medium text-muted-foreground">Allegation coverage</div>
+              <ul className="space-y-1">
+                {notice.allegationCoverage.map((c) => (
+                  <li key={c.allegationNo} className="flex items-start gap-1.5 text-[12px]">
+                    {c.addressed ? (
+                      <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
+                    ) : (
+                      <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                    )}
+                    <span>
+                      Allegation {c.allegationNo}
+                      {c.replySection ? ` — addressed in ${c.replySection}` : ""}
+                      {!c.addressed && c.reason ? ` — ${c.reason}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {notice.advisoryNotes && notice.advisoryNotes.length > 0 && (
+            <div className="space-y-1 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2">
+              {notice.advisoryNotes.map((n, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-amber-700">
+                  <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span>{n.note}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {notice.escalationWarning && (
+            <div className="flex items-start gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>{notice.escalationWarning}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stage 1 — optional-inputs form. Skip is always one click away, per spec. */}
+      {stage === "analysed" && isLatest && (
+        <div className="space-y-2">
+          {notice.optionalInputsPrompt && (
+            <p className="text-[12px] text-muted-foreground">{notice.optionalInputsPrompt.message}</p>
+          )}
+
+          {!showOptionalInputs ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" className="h-8 gap-1.5 text-[12px]" disabled={pending} onClick={handleDraftNow}>
+                {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                {notice.optionalInputsPrompt?.skipLabel ?? "Draft the reply now"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-[12px]"
+                disabled={pending}
+                onClick={() => setShowOptionalInputs(true)}
+              >
+                Add details first <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-border/60 bg-card/60 p-2.5">
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Brief facts of your case</Label>
+                <Textarea
+                  value={briefFacts}
+                  onChange={(e) => setBriefFacts(e.target.value)}
+                  className="min-h-[60px] text-[13px]"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Your explanation for the allegations</Label>
+                <Textarea
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  className="min-h-[60px] text-[13px]"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Legal grounds (if any)</Label>
+                <Textarea
+                  value={legalGrounds}
+                  onChange={(e) => setLegalGrounds(e.target.value)}
+                  className="min-h-[50px] text-[13px]"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Supporting documents (comma-separated)</Label>
+                <Input
+                  value={supportingDocs}
+                  onChange={(e) => setSupportingDocs(e.target.value)}
+                  className="h-8 text-[13px]"
+                  placeholder="e.g. Tax invoices, E-way bills, Bank statements"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Any additional information</Label>
+                <Textarea
+                  value={additionalInfo}
+                  onChange={(e) => setAdditionalInfo(e.target.value)}
+                  className="min-h-[50px] text-[13px]"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button size="sm" className="h-8 gap-1.5 text-[12px]" disabled={pending} onClick={handleDraftWithDetails}>
+                  {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                  Draft with these details
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-[12px] text-muted-foreground"
+                  disabled={pending}
+                  onClick={handleDraftNow}
+                >
+                  Skip — draft from notice alone
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {amount && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <IndianRupee className="h-3 w-3" />
+              Tax {currency} {(amount.tax ?? 0).toLocaleString("en-IN")} · Interest {currency}{" "}
+              {(amount.interest ?? 0).toLocaleString("en-IN")} · Penalty {currency}{" "}
+              {(amount.penalty ?? 0).toLocaleString("en-IN")}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stage 3 — refine box, repeatable, always available on the latest drafted/refined turn. */}
+      {(stage === "drafted" || stage === "refined") && isLatest && (
+        <div className="flex items-center gap-2 border-t border-border/50 pt-2">
+          <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Input
+            value={refineInstruction}
+            onChange={(e) => setRefineInstruction(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRefineSubmit();
+            }}
+            placeholder='Refine this reply — e.g. "shorten Ground B" or "add a limitation ground"'
+            className="h-8 flex-1 text-[13px]"
+            disabled={pending}
+          />
+          <Button size="sm" className="h-8 shrink-0 text-[12px]" disabled={pending || !refineInstruction.trim()} onClick={handleRefineSubmit}>
+            {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+          </Button>
+        </div>
+      )}
+
+      {notice.disclaimer && (
+        <p className="border-t border-border/50 pt-2 text-[10.5px] italic text-muted-foreground">{notice.disclaimer}</p>
+      )}
+    </div>
   );
 }
 

@@ -75,6 +75,77 @@ export interface WorkspaceTool {
   disabledReason?: string;
 }
 
+export interface NoticeAmountProposed {
+  tax?: number;
+  interest?: number;
+  penalty?: number;
+  fine?: number;
+  currency?: string;
+}
+
+export interface NoticeSummaryData {
+  noticeType?: string;
+  formNumber?: string;
+  sections?: string[];
+  rules?: string[];
+  issuingAuthority?: string;
+  gstin?: string;
+  taxPeriod?: string;
+  dateOfNotice?: string;
+  replyDueDate?: string;
+  personalHearingDate?: string;
+  amountProposed?: NoticeAmountProposed;
+  natureOfProceeding?: string;
+}
+
+export interface NoticeAllegation {
+  allegationNo: number;
+  text: string;
+  sourceRef?: string;
+}
+
+export interface NoticeOptionalInputField {
+  key: string;
+  label: string;
+}
+
+export interface NoticeOptionalInputsPrompt {
+  message: string;
+  fields: NoticeOptionalInputField[];
+  skipLabel?: string;
+}
+
+export interface NoticeAllegationCoverage {
+  allegationNo: number;
+  addressed: boolean;
+  replySection?: string;
+  reason?: string;
+}
+
+/**
+ * Notice Agent staged-workflow metadata attached to a ChatMessage. Present
+ * only on messages produced by the "notice-reply" tool; `stage` mirrors the
+ * vendor's own state machine: uploaded -> analysed -> drafted -> refined.
+ */
+export interface NoticeWorkflowData {
+  stage: "uploaded" | "analysed" | "drafted" | "refined";
+  conversationId: string;
+  analysisId?: string;
+  draftId?: string;
+  revision?: number;
+  noticeSummary?: NoticeSummaryData;
+  allegations?: NoticeAllegation[];
+  optionalInputsPrompt?: NoticeOptionalInputsPrompt;
+  allegationCoverage?: NoticeAllegationCoverage[];
+  replyForm?: string;
+  deadline?: string;
+  fraudTrack?: boolean;
+  advisoryNotes?: { type: string; note: string; severity: string }[];
+  escalationWarning?: string | null;
+  disclaimer?: string;
+  changesSummary?: string[];
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -97,6 +168,8 @@ export interface ChatMessage {
   progress?: number;
   stage?: string;
   feedback?: "up" | "down";
+  /** Notice Agent staged-workflow data — see NoticeWorkflowData. Only set for provider="notice" assistant messages. */
+  notice?: NoticeWorkflowData;
 }
 
 /**
