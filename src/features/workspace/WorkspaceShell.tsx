@@ -191,7 +191,15 @@ export function WorkspaceShell() {
         return live.activeModuleId === requestModuleId && live.activeToolId === requestToolId;
       };
 
-      const isNewConversation = !thread;
+      // A thread only counts as "existing" once it has a real backend id —
+      // a thread still sitting on its optimistic "local-" id (e.g. because
+      // the very first analyze/query call for it failed and the user is
+      // retrying) must be treated as a new conversation again, not routed
+      // through askNotice/sendMessage's "existing conversation" branch with
+      // a non-numeric id. Number("local-xxx") is NaN, which JSON.stringify
+      // silently turns into null — that was surfacing as a 422
+      // "conversation_id: none is not an allowed value" on /notice/ask.
+      const isNewConversation = !thread || thread.id.startsWith("local-");
       const optimisticUserMessage = createOptimisticMessage(prompt, file);
 
       // Optimistic UI: the user's message appears instantly, before the backend

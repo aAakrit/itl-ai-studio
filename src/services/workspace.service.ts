@@ -501,6 +501,17 @@ export const workspaceService = {
 
 export const isFileTool = (toolId: string): boolean => toolId in FILE_TOOL_ENDPOINTS;
 
+/** Parses a thread id into the numeric backend conversation id, or throws a clear error for an unsynced ("local-") thread rather than silently sending `null`. */
+const requireConversationId = (threadId: string): number => {
+  const id = Number(threadId);
+  if (!Number.isFinite(id)) {
+    throw new Error(
+      `Cannot call this endpoint for thread "${threadId}" — it hasn't been synced to the backend yet (still a local/optimistic id).`,
+    );
+  }
+  return id;
+};
+
 export const chatService = {
   /** Lightweight list for the sidebar — metadata only, no message bodies, scoped to one Module+Tool workspace. */
   listThreads: async (moduleId: string, toolId: string): Promise<ChatThread[]> => {
@@ -756,7 +767,7 @@ export const chatService = {
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
     const { data } = await api.post<ApiEnvelope<BackendNoticeDraftResult>>(
       endpoints.ai.noticeDraft,
-      { conversation_id: Number(threadId), user_inputs: userInputs ?? null },
+      { conversation_id: requireConversationId(threadId), user_inputs: userInputs ?? null },
       { signal },
     );
 
@@ -810,7 +821,7 @@ export const chatService = {
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
     const { data } = await api.post<ApiEnvelope<BackendNoticeRefineResult>>(
       endpoints.ai.noticeRefine,
-      { conversation_id: Number(threadId), instruction },
+      { conversation_id: requireConversationId(threadId), instruction },
       { signal },
     );
 
@@ -861,7 +872,7 @@ export const chatService = {
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
     const { data } = await api.post<ApiEnvelope<BackendNoticeAskResult>>(
       endpoints.ai.noticeAsk,
-      { conversation_id: Number(threadId), question },
+      { conversation_id: requireConversationId(threadId), question },
       { signal },
     );
 
