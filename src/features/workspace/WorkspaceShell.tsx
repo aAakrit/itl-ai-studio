@@ -28,10 +28,10 @@ const createOptimisticMessage = (content: string, file?: File | null): ChatMessa
   attachments: file ? [{ id: `local-${file.name}`, name: file.name, size: file.size, type: file.type }] : [],
 });
 
-const createErrorMessage = (): ChatMessage => ({
+const createErrorMessage = (content?: string): ChatMessage => ({
   id: `local-${generateId()}`,
   role: "assistant",
-  content: ERROR_MESSAGE_CONTENT,
+  content: content || ERROR_MESSAGE_CONTENT,
   createdAt: new Date().toISOString(),
   status: "error",
 });
@@ -289,7 +289,7 @@ export function WorkspaceShell() {
             // until a message succeeds, but we still surface the failure in place.
             replaceMessage(localThreadId, optimisticUserMessage.id, { ...optimisticUserMessage, status: undefined });
           }
-          addMessage(localThreadId, createErrorMessage());
+          addMessage(localThreadId, createErrorMessage(error instanceof Error && !axios.isAxiosError(error) ? error.message : undefined));
         }
       } finally {
         setIsSending(false);
@@ -333,8 +333,8 @@ export function WorkspaceShell() {
         if (backendThread) {
           upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
         }
-      } catch {
-        addMessage(threadId, createErrorMessage());
+      } catch (error) {
+        addMessage(threadId, createErrorMessage(error instanceof Error && !axios.isAxiosError(error) ? error.message : undefined));
       } finally {
         setIsSending(false);
       }
@@ -355,8 +355,8 @@ export function WorkspaceShell() {
         if (backendThread) {
           upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
         }
-      } catch {
-        addMessage(threadId, createErrorMessage());
+      } catch (error) {
+        addMessage(threadId, createErrorMessage(error instanceof Error && !axios.isAxiosError(error) ? error.message : undefined));
       } finally {
         setIsSending(false);
       }

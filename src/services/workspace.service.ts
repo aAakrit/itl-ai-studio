@@ -247,6 +247,9 @@ interface BackendNoticeAnalyzeResult extends BackendNoticeTurn {
   allegations?: BackendNoticeAllegation[];
   optional_inputs_prompt?: BackendNoticeOptionalInputsPrompt;
   extraction_quality?: unknown;
+  /** Set when the staged /analyze(-file) endpoint 404'd and the backend fell back to the legacy one-shot path — stage comes back "drafted" directly, no separate analysis step. */
+  legacy?: boolean;
+  sources?: NoticeSources;
 }
 
 interface BackendNoticeDraftResult extends BackendNoticeTurn {
@@ -512,6 +515,21 @@ const requireConversationId = (threadId: string): number => {
   return id;
 };
 
+/**
+ * Pulls a human-readable message out of the 409 body the backend's
+ * NoticeStageError raises (`{success, error, detail, stage}`) — used for
+ * the staged workflow's out-of-order/legacy-mode guards, so the person
+ * sees the actual explanation instead of the generic "unable to generate
+ * a response" fallback bubble.
+ */
+const extractNoticeErrorDetail = (error: unknown, fallback: string): string => {
+  if (isAxiosError(error)) {
+    const body = error.response?.data as { detail?: string } | undefined;
+    if (body?.detail) return body.detail;
+  }
+  return fallback;
+};
+
 export const chatService = {
   /** Lightweight list for the sidebar — metadata only, no message bodies, scoped to one Module+Tool workspace. */
   listThreads: async (moduleId: string, toolId: string): Promise<ChatThread[]> => {
@@ -734,6 +752,7 @@ export const chatService = {
       noticeSummary: normalizeNoticeSummary(result.notice_summary),
       allegations: normalizeAllegations(result.allegations),
       optionalInputsPrompt: normalizeOptionalInputsPrompt(result.optional_inputs_prompt),
+      legacy: result.legacy,
     };
 
     return {
@@ -750,7 +769,9 @@ export const chatService = {
         role: "assistant",
         content: result.assistant_message.answer ?? "",
         createdAt: result.assistant_message.created_at,
-        citations: [],
+        // Only populated on the legacy fallback path — the staged /analyze
+        // response never returns sources (no reply has been drafted yet).
+        citations: normalizeNoticeSources(result.sources),
         attachments: [],
         notice,
       },
@@ -765,11 +786,16 @@ export const chatService = {
     context: AiQueryContext,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    const { data } = await api.post<ApiEnvelope<BackendNoticeDraftResult>>(
-      endpoints.ai.noticeDraft,
-      { conversation_id: requireConversationId(threadId), user_inputs: userInputs ?? null },
-      { signal },
-    );
+    let data: ApiEnvelope<BackendNoticeDraftResult>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeDraftResult>>(
+        endpoints.ai.noticeDraft,
+        { conversation_id: requireConversationId(threadId), user_inputs: userInputs ?? null },
+        { signal },
+      ));
+    } catch (error) {
+      throw new Error(extractNoticeErrorDetail(error, "Unable to draft the reply. Please try again."));
+    }
 
     const result = data.data;
     const normalizedThread = normalizeThread(result.conversation, {
@@ -819,11 +845,16 @@ export const chatService = {
     context: AiQueryContext,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    const { data } = await api.post<ApiEnvelope<BackendNoticeRefineResult>>(
-      endpoints.ai.noticeRefine,
-      { conversation_id: requireConversationId(threadId), instruction },
-      { signal },
-    );
+    let data: ApiEnvelope<BackendNoticeRefineResult>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeRefineResult>>(
+        endpoints.ai.noticeRefine,
+        { conversation_id: requireConversationId(threadId), instruction },
+        { signal },
+      ));
+    } catch (error) {
+      throw new Error(extractNoticeErrorDetail(error, "Unable to refine the reply. Please try again."));
+    }
 
     const result = data.data;
     const normalizedThread = normalizeThread(result.conversation, {
@@ -870,11 +901,16 @@ export const chatService = {
     context: AiQueryContext,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    const { data } = await api.post<ApiEnvelope<BackendNoticeAskResult>>(
-      endpoints.ai.noticeAsk,
-      { conversation_id: requireConversationId(threadId), question },
-      { signal },
-    );
+    let data: ApiEnvelope<BackendNoticeAskResult>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeAskResult>>(
+        endpoints.ai.noticeAsk,
+        { conversation_id: requireConversationId(threadId), question },
+        { signal },
+      ));
+    } catch (error) {
+      throw new Error(extractNoticeErrorDetail(error, "Unable to answer that question. Please try again."));
+    }
 
     const result = data.data;
     const normalizedThread = normalizeThread(result.conversation, {

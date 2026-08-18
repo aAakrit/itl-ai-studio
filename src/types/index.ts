@@ -144,6 +144,8 @@ export interface NoticeWorkflowData {
   escalationWarning?: string | null;
   disclaimer?: string;
   changesSummary?: string[];
+  /** True when this reply came from the legacy one-shot Notice AI (the staged analyse/draft endpoints weren't deployed) — draft/refine/ask aren't available for it. */
+  legacy?: boolean;
 }
 
 export interface ChatMessage {
