@@ -729,15 +729,23 @@ export const chatService = {
     if (threadId) form.append("conversation_id", threadId);
     if (file) form.append("file", file);
 
-    const { data } = await api.post<ApiEnvelope<BackendNoticeAnalyzeResult>>(endpoint, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-      signal,
-      onUploadProgress: onUploadProgress
-        ? (event) => {
-            if (event.total) onUploadProgress(Math.round((event.loaded / event.total) * 100));
-          }
-        : undefined,
-    });
+    let data: ApiEnvelope<BackendNoticeAnalyzeResult>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeAnalyzeResult>>(endpoint, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+        signal,
+        onUploadProgress: onUploadProgress
+          ? (event) => {
+              if (event.total) onUploadProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          : undefined,
+      }));
+    } catch (error) {
+      // Surfaces the backend's NoticeUnavailableError detail ("neither the
+      // new nor the legacy endpoint could be reached") when both the staged
+      // and legacy vendor paths are down, instead of a generic axios error.
+      throw new Error(extractNoticeErrorDetail(error, "Unable to analyse the notice. Please try again."));
+    }
 
     const result = data.data;
     const normalizedThread = normalizeThread(result.conversation, {
