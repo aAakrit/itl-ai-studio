@@ -6,7 +6,7 @@ import { pricingService } from "@/services/pricing.service";
 import { faqService } from "@/services/faq.service";
 import { contactService } from "@/services/contact.service";
 import { workspaceService, chatService } from "@/services/workspace.service";
-import { adminService, analyticsService, userService } from "@/services/admin.service";
+import { adminService, analyticsService, subscriptionService, userService } from "@/services/admin.service";
 import { legalService } from "@/services/legal.service";
 import { cmsContentService, cmsService, navigationService } from "@/services/cms.service";
 import { featureService } from "@/services/features.service";
@@ -47,11 +47,15 @@ export const useAdminUserDetail = (id: number | null) =>
     enabled: id != null,
   });
 
-export const useAdminUserHistory = (id: number | null) =>
+export const useAdminUserHistory = (
+  id: number | null,
+  params?: { page?: number; limit?: number },
+) =>
   useQuery({
-    queryKey: ["admin", "users", "history", id],
-    queryFn: () => adminService.getUserHistory(id!),
+    queryKey: ["admin", "users", "history", id, params],
+    queryFn: () => adminService.getUserHistory(id!, params),
     enabled: id != null,
+    placeholderData: keepPreviousData,
   });
 
 function useAdminUserMutation<T = void>(mutationFn: (id: number, arg: T) => Promise<unknown>) {
@@ -67,11 +71,78 @@ function useAdminUserMutation<T = void>(mutationFn: (id: number, arg: T) => Prom
   });
 }
 
-export const useApproveUser = () => useAdminUserMutation<void>((id) => adminService.approveUser(id));
-export const useSuspendUser = () => useAdminUserMutation<void>((id) => adminService.suspendUser(id));
-export const useDeleteUser = () => useAdminUserMutation<void>((id) => adminService.deleteUser(id));
+type ReasonArg = { reason?: string } | undefined;
+
+export const useApproveUser = () =>
+  useAdminUserMutation<ReasonArg>((id, arg) => adminService.approveUser(id, arg?.reason));
+export const useSuspendUser = () =>
+  useAdminUserMutation<ReasonArg>((id, arg) => adminService.suspendUser(id, arg?.reason));
+export const useDeleteUser = () =>
+  useAdminUserMutation<ReasonArg>((id, arg) => adminService.deleteUser(id, arg?.reason));
 export const useUpdateUser = () =>
   useAdminUserMutation<Record<string, unknown>>((id, patch) => adminService.updateUser(id, patch));
+
+/* ---------- Admin subscriptions ---------- */
+
+export const useAdminSubscriptions = (params: SubscriptionListParams) =>
+  useQuery({
+    queryKey: ["admin", "subscriptions", params],
+    queryFn: () => subscriptionService.list(params),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAdminSubscription = (id: number | null) =>
+  useQuery({
+    queryKey: ["admin", "subscriptions", "detail", id],
+    queryFn: () => subscriptionService.get(id!),
+    enabled: id != null,
+  });
+
+/**
+ * Every subscription mutation invalidates users + subscriptions so the list,
+ * the user detail and any subscription view all reflect the new state.
+ */
+function useSubscriptionMutation<TVars>(mutationFn: (vars: TVars) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "subscriptions"] });
+    },
+  });
+}
+
+export const useCreateManualSubscription = () =>
+  useSubscriptionMutation((payload: SubscriptionCreateManual) =>
+    subscriptionService.createManual(payload),
+  );
+
+export const useUpdateSubscription = () =>
+  useSubscriptionMutation(({ id, patch }: { id: number; patch: SubscriptionUpdate }) =>
+    subscriptionService.update(id, patch),
+  );
+
+export const useExtendSubscription = () =>
+  useSubscriptionMutation(({ id, payload }: { id: number; payload: SubscriptionExtend }) =>
+    subscriptionService.extend(id, payload),
+  );
+
+export const useSuspendSubscription = () =>
+  useSubscriptionMutation(({ id, reason }: { id: number; reason?: string }) =>
+    subscriptionService.suspend(id, reason),
+  );
+
+export const useCancelSubscription = () =>
+  useSubscriptionMutation(({ id, reason }: { id: number; reason?: string }) =>
+    subscriptionService.cancel(id, reason),
+  );
+
+export const useActivateSubscription = () =>
+  useSubscriptionMutation(({ id, reason }: { id: number; reason?: string }) =>
+    subscriptionService.activate(id, reason),
+  );
+
 
 export const useAdminNav = () => useQuery({ queryKey: ["admin", "nav"], queryFn: () => adminService.getNav(), staleTime: Infinity });
 export const useAnalytics = () => useQuery({ queryKey: ["analytics"], queryFn: () => analyticsService.getOverview(), staleTime: ADMIN_STALE });
@@ -144,7 +215,13 @@ export { useCommandStore } from "@/store/commandStore";
 
 import { useFeatureFlagStore } from "@/store/featureFlagStore";
 import { usePermissionStore } from "@/store/permissionStore";
-import { UserListParams } from "@/types/admin";
+import type {
+  SubscriptionCreateManual,
+  SubscriptionExtend,
+  SubscriptionListParams,
+  SubscriptionUpdate,
+  UserListParams,
+} from "@/types/admin";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));

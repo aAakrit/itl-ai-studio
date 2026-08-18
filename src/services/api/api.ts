@@ -109,6 +109,17 @@ export const endpoints = {
       history: (id: number) =>
           `/admin/users/${id}/history`,
   },
+  adminSubscriptions: {
+      list: "/admin/subscriptions",
+      detail: (id: number) => `/admin/subscriptions/${id}`,
+      createManual: "/admin/subscriptions/manual",
+      update: (id: number) => `/admin/subscriptions/${id}`,
+      extend: (id: number) => `/admin/subscriptions/${id}/extend`,
+      suspend: (id: number) => `/admin/subscriptions/${id}/suspend`,
+      cancel: (id: number) => `/admin/subscriptions/${id}/cancel`,
+      activate: (id: number) => `/admin/subscriptions/${id}/activate`,
+  },
+
   profile: {
     me: "/profile/me",
     update: "/profile/me",
