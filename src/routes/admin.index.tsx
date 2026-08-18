@@ -126,7 +126,7 @@ function AdminDashboard() {
                       <TableCell className="text-right"><Skeleton className="ml-auto h-3 w-20" /></TableCell>
                     </TableRow>
                   ))
-                : (users.items ?? []).slice(0, 6).map((u: any) => (
+                : (users?.items ?? []).slice(0, 6).map((u: any) => (
                 <TableRow key={u.id}>
                   <TableCell>
                     <div className="flex items-center gap-2.5">
