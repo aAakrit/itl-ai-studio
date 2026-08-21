@@ -109,7 +109,7 @@ export const endpoints = {
       history: (id: number) =>
           `/admin/users/${id}/history`,
   },
-  adminSubscriptions: {
+    adminSubscriptions: {
       list: "/admin/subscriptions",
       detail: (id: number) => `/admin/subscriptions/${id}`,
       createManual: "/admin/subscriptions/manual",
@@ -235,6 +235,8 @@ export const endpoints = {
     // Staged Notice Agent workflow (uploaded -> analysed -> drafted -> refined)
     noticeAnalyze: "/ai/notice/analyze",
     noticeAnalyzeFile: "/ai/notice/analyze-file",
+    noticeSubmissions: "/ai/notice/submissions",
+    noticeSubmissionsFile: "/ai/notice/submissions-file",
     noticeDraft: "/ai/notice/draft",
     noticeRefine: "/ai/notice/refine",
     noticeAsk: "/ai/notice/ask",

@@ -83,36 +83,75 @@ export interface NoticeAmountProposed {
   currency?: string;
 }
 
-export interface NoticeSummaryData {
+export interface NoticeProfileAmounts {
+  tax?: number | null;
+  interest?: number | null;
+  penalty?: number | null;
+  total?: number | null;
+}
+
+export interface NoticeProfileAuthority {
+  name?: string;
+  designation?: string;
+  office?: string;
+  jurisdiction?: string;
+}
+
+/** v3's replacement for the old "notice_summary" — same idea, vendor's actual field names. */
+export interface NoticeProfile {
   noticeType?: string;
-  formNumber?: string;
-  sections?: string[];
-  rules?: string[];
-  issuingAuthority?: string;
-  gstin?: string;
+  form?: string;
+  act?: string;
+  sectionsCited?: string[];
+  rulesCited?: string[];
+  noticeNumber?: string;
+  noticeDate?: string;
+  dinNumber?: string;
   taxPeriod?: string;
-  dateOfNotice?: string;
+  hearingDate?: string;
   replyDueDate?: string;
-  personalHearingDate?: string;
-  amountProposed?: NoticeAmountProposed;
-  natureOfProceeding?: string;
+  amounts?: NoticeProfileAmounts;
+  issuingAuthority?: NoticeProfileAuthority;
+  reliedUponDocuments?: string[];
+  annexures?: string[];
+  missingParticulars?: string[];
+  fraudTrack?: boolean;
+  personalHearingOffered?: boolean;
+  replyForm?: string;
+  deadline?: string;
+  category?: string;
+  noticeSummary?: string;
 }
 
 export interface NoticeAllegation {
-  allegationNo: number;
-  text: string;
-  sourceRef?: string;
+  id: string;
+  allegation: string;
+  section?: string;
+  amount?: number | null;
+  evidenceCitedInNotice?: string;
 }
 
-export interface NoticeOptionalInputField {
-  key: string;
-  label: string;
+export interface NoticeReviewNote {
+  type: string;
+  note: string;
+  action?: string;
+  includeInReply?: string;
 }
 
-export interface NoticeOptionalInputsPrompt {
-  message: string;
-  fields: NoticeOptionalInputField[];
-  skipLabel?: string;
+/** One row per allegation while facts/evidence are being collected. */
+export interface NoticeEvidenceMatrixRow {
+  id: string;
+  allegation: string;
+  userPosition?: string;
+  evidenceOffered?: string[];
+  evidenceGap?: string;
+  inconsistency?: string;
+  status: "ANSWERED" | "PARTIAL" | "UNADDRESSED";
+}
+
+export interface NoticeRejectedFile {
+  file: string;
+  reason: string;
 }
 
 export interface NoticeAllegationCoverage {
@@ -123,28 +162,43 @@ export interface NoticeAllegationCoverage {
 }
 
 /**
- * Notice Agent staged-workflow metadata attached to a ChatMessage. Present
- * only on messages produced by the "notice-reply" tool; `stage` mirrors the
- * vendor's own state machine: uploaded -> analysed -> drafted -> refined.
+ * Notice Agent v3 staged-workflow metadata attached to a ChatMessage.
+ * `phase` mirrors the vendor's own state machine verbatim: uploaded ->
+ * ANALYSED_AWAITING_FACTS -> COLLECTING_FACTS -> DRAFTED. (Named `phase`,
+ * not `stage`, to match the vendor's v3 vocabulary directly.)
  */
 export interface NoticeWorkflowData {
-  stage: "uploaded" | "analysed" | "drafted" | "refined";
+  phase: "uploaded" | "ANALYSED_AWAITING_FACTS" | "COLLECTING_FACTS" | "DRAFTED";
   conversationId: string;
-  analysisId?: string;
-  draftId?: string;
   revision?: number;
-  noticeSummary?: NoticeSummaryData;
+
+  // Analyse-phase fields
+  noticeProfile?: NoticeProfile;
   allegations?: NoticeAllegation[];
-  optionalInputsPrompt?: NoticeOptionalInputsPrompt;
-  allegationCoverage?: NoticeAllegationCoverage[];
+  reviewNotes?: NoticeReviewNote[];
+  suggestedDocuments?: string[];
+
+  // Facts/evidence-loop fields (COLLECTING_FACTS)
+  evidenceMatrix?: NoticeEvidenceMatrixRow[];
+  followUpQuestions?: string[];
+  unaddressedAllegations?: string[];
+  extractedFacts?: string[];
+  readyToDraft?: boolean;
+  acceptedFiles?: string[];
+  rejectedFiles?: NoticeRejectedFile[];
+  documentsOnRecord?: number;
+
+  // Draft-phase fields (DRAFTED)
+  noticeType?: string;
   replyForm?: string;
   deadline?: string;
   fraudTrack?: boolean;
-  advisoryNotes?: { type: string; note: string; severity: string }[];
-  escalationWarning?: string | null;
   disclaimer?: string;
-  changesSummary?: string[];
-  /** True when this reply came from the legacy one-shot Notice AI (the staged analyse/draft endpoints weren't deployed) — draft/refine/ask aren't available for it. */
+  escalationWarning?: string | null;
+  allegationCoverage?: NoticeAllegationCoverage[];
+  instructionApplied?: string;
+
+  /** True when this reply came from the legacy one-shot Notice AI ("reply as it is" shortcut) — no facts loop, no refine session. */
   legacy?: boolean;
 }
 

@@ -11,8 +11,10 @@ import type {
   MessageAttachment,
   NoticeAllegation,
   NoticeAllegationCoverage,
-  NoticeOptionalInputsPrompt,
-  NoticeSummaryData,
+  NoticeEvidenceMatrixRow,
+  NoticeProfile,
+  NoticeRejectedFile,
+  NoticeReviewNote,
   NoticeWorkflowData,
   PromptSuggestion,
   RelatedJudgement,
@@ -199,31 +201,73 @@ interface BackendNoticeAmountProposed {
   currency?: string;
 }
 
-interface BackendNoticeSummary {
+interface BackendNoticeProfileAmounts {
+  tax?: number | null;
+  interest?: number | null;
+  penalty?: number | null;
+  total?: number | null;
+}
+
+interface BackendNoticeProfileAuthority {
+  name?: string;
+  designation?: string;
+  office?: string;
+  jurisdiction?: string;
+}
+
+interface BackendNoticeProfile {
   notice_type?: string;
-  form_number?: string;
-  sections?: string[];
-  rules?: string[];
-  issuing_authority?: string;
-  gstin?: string;
+  form?: string;
+  act?: string;
+  sections_cited?: string[];
+  rules_cited?: string[];
+  notice_number?: string;
+  notice_date?: string;
+  din_number?: string;
   tax_period?: string;
-  date_of_notice?: string;
+  hearing_date?: string;
   reply_due_date?: string;
-  personal_hearing_date?: string;
-  amount_proposed?: BackendNoticeAmountProposed;
-  nature_of_proceeding?: string;
+  amounts?: BackendNoticeProfileAmounts;
+  issuing_authority?: BackendNoticeProfileAuthority;
+  relied_upon_documents?: string[];
+  annexures?: string[];
+  missing_particulars?: string[];
+  fraud_track?: boolean;
+  personal_hearing_offered?: boolean;
+  reply_form?: string;
+  deadline?: string;
+  category?: string;
+  notice_summary?: string;
 }
 
 interface BackendNoticeAllegation {
-  allegation_no: number;
-  text: string;
-  source_ref?: string;
+  id: string;
+  allegation: string;
+  section?: string;
+  amount?: number | null;
+  evidence_cited_in_notice?: string;
 }
 
-interface BackendNoticeOptionalInputsPrompt {
-  message: string;
-  fields: { key: string; label: string }[];
-  skip_action?: { label: string; endpoint: string };
+interface BackendNoticeReviewNote {
+  type: string;
+  note: string;
+  action?: string;
+  include_in_reply?: string;
+}
+
+interface BackendNoticeEvidenceMatrixRow {
+  id: string;
+  allegation: string;
+  user_position?: string;
+  evidence_offered?: string[];
+  evidence_gap?: string;
+  inconsistency?: string;
+  status: "ANSWERED" | "PARTIAL" | "UNADDRESSED";
+}
+
+interface BackendNoticeRejectedFile {
+  file: string;
+  reason: string;
 }
 
 interface BackendNoticeAllegationCoverage {
@@ -233,52 +277,49 @@ interface BackendNoticeAllegationCoverage {
   reason?: string;
 }
 
+/**
+ * v3's single unified turn shape — analyse/submissions/draft/refine (and
+ * the /ask compatibility shim) all return this same envelope, with fields
+ * simply absent when not applicable to that call/phase.
+ */
 interface BackendNoticeTurn {
   conversation: BackendConversation;
   user_message: { id: number | string; query: string; created_at: string };
   assistant_message: { id: number | string; answer: string | null; created_at: string };
-  stage: "uploaded" | "analysed" | "drafted" | "refined";
+  phase: "uploaded" | "ANALYSED_AWAITING_FACTS" | "COLLECTING_FACTS" | "DRAFTED";
+  message?: string;
   query_time_ms?: number;
-}
 
-interface BackendNoticeAnalyzeResult extends BackendNoticeTurn {
-  analysis_id?: string;
-  notice_summary?: BackendNoticeSummary;
+  // Analyse-phase fields
+  notice_profile?: BackendNoticeProfile;
   allegations?: BackendNoticeAllegation[];
-  optional_inputs_prompt?: BackendNoticeOptionalInputsPrompt;
-  extraction_quality?: unknown;
-  /** Set when the staged /analyze(-file) endpoint 404'd and the backend fell back to the legacy one-shot path — stage comes back "drafted" directly, no separate analysis step. */
-  legacy?: boolean;
-  sources?: NoticeSources;
-}
+  review_notes?: BackendNoticeReviewNote[];
+  suggested_documents?: string[];
 
-interface BackendNoticeDraftResult extends BackendNoticeTurn {
-  draft_id?: string;
+  // Facts/evidence-loop fields
+  evidence_matrix?: BackendNoticeEvidenceMatrixRow[];
+  follow_up_questions?: string[];
+  unaddressed_allegations?: string[];
+  extracted_facts?: string[];
+  ready_to_draft?: boolean;
+  accepted_files?: string[];
+  rejected_files?: BackendNoticeRejectedFile[];
+  documents_on_record?: number;
+
+  // Draft-phase fields
+  notice_type?: string;
   reply_form?: string;
   deadline?: string;
   fraud_track?: boolean;
-  allegation_coverage?: BackendNoticeAllegationCoverage[];
-  sources?: NoticeSources;
-  verification?: unknown;
-  citation_audit?: unknown;
-  advisory_notes?: { type: string; note: string; severity: string }[];
+  disclaimer?: string;
   escalation_warning?: string | null;
-  disclaimer?: string;
-}
-
-interface BackendNoticeRefineResult extends BackendNoticeTurn {
-  draft_id?: string;
-  previous_draft_id?: string;
-  revision?: number;
-  changes_summary?: string[];
+  sources?: NoticeSources;
   allegation_coverage?: BackendNoticeAllegationCoverage[];
-  verification?: unknown;
-  citation_audit?: unknown;
-  disclaimer?: string;
-}
+  revision?: number;
+  instruction_applied?: string;
 
-interface BackendNoticeAskResult extends BackendNoticeTurn {
-  citation_audit?: unknown;
+  /** Set when the staged endpoints 404'd and the backend fell back to the legacy one-shot "reply as it is" path. */
+  legacy?: boolean;
 }
 
 const titleCase = (s: string) => s.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -372,45 +413,68 @@ function normalizeNoticeSources(
 const normalizeRelatedJudgements = (list: BackendRelatedJudgement[] | null | undefined): RelatedJudgement[] =>
   (list ?? []).map(normalizeRelatedJudgement);
 
-const normalizeNoticeSummary = (s?: BackendNoticeSummary): NoticeSummaryData | undefined =>
-  s
+const normalizeNoticeProfile = (p?: BackendNoticeProfile): NoticeProfile | undefined =>
+  p
     ? {
-        noticeType: s.notice_type,
-        formNumber: s.form_number,
-        sections: s.sections,
-        rules: s.rules,
-        issuingAuthority: s.issuing_authority,
-        gstin: s.gstin,
-        taxPeriod: s.tax_period,
-        dateOfNotice: s.date_of_notice,
-        replyDueDate: s.reply_due_date,
-        personalHearingDate: s.personal_hearing_date,
-        amountProposed: s.amount_proposed
+        noticeType: p.notice_type,
+        form: p.form,
+        act: p.act,
+        sectionsCited: p.sections_cited,
+        rulesCited: p.rules_cited,
+        noticeNumber: p.notice_number,
+        noticeDate: p.notice_date,
+        dinNumber: p.din_number,
+        taxPeriod: p.tax_period,
+        hearingDate: p.hearing_date,
+        replyDueDate: p.reply_due_date,
+        amounts: p.amounts
+          ? { tax: p.amounts.tax, interest: p.amounts.interest, penalty: p.amounts.penalty, total: p.amounts.total }
+          : undefined,
+        issuingAuthority: p.issuing_authority
           ? {
-              tax: s.amount_proposed.tax,
-              interest: s.amount_proposed.interest,
-              penalty: s.amount_proposed.penalty,
-              fine: s.amount_proposed.fine,
-              currency: s.amount_proposed.currency,
+              name: p.issuing_authority.name,
+              designation: p.issuing_authority.designation,
+              office: p.issuing_authority.office,
+              jurisdiction: p.issuing_authority.jurisdiction,
             }
           : undefined,
-        natureOfProceeding: s.nature_of_proceeding,
+        reliedUponDocuments: p.relied_upon_documents,
+        annexures: p.annexures,
+        missingParticulars: p.missing_particulars,
+        fraudTrack: p.fraud_track,
+        personalHearingOffered: p.personal_hearing_offered,
+        replyForm: p.reply_form,
+        deadline: p.deadline,
+        category: p.category,
+        noticeSummary: p.notice_summary,
       }
     : undefined;
 
 const normalizeAllegations = (list?: BackendNoticeAllegation[]): NoticeAllegation[] | undefined =>
-  list?.map((a) => ({ allegationNo: a.allegation_no, text: a.text, sourceRef: a.source_ref }));
+  list?.map((a) => ({
+    id: a.id,
+    allegation: a.allegation,
+    section: a.section,
+    amount: a.amount,
+    evidenceCitedInNotice: a.evidence_cited_in_notice,
+  }));
 
-const normalizeOptionalInputsPrompt = (
-  p?: BackendNoticeOptionalInputsPrompt,
-): NoticeOptionalInputsPrompt | undefined =>
-  p
-    ? {
-        message: p.message,
-        fields: (p.fields ?? []).map((f) => ({ key: f.key, label: f.label })),
-        skipLabel: p.skip_action?.label,
-      }
-    : undefined;
+const normalizeReviewNotes = (list?: BackendNoticeReviewNote[]): NoticeReviewNote[] | undefined =>
+  list?.map((n) => ({ type: n.type, note: n.note, action: n.action, includeInReply: n.include_in_reply }));
+
+const normalizeEvidenceMatrix = (list?: BackendNoticeEvidenceMatrixRow[]): NoticeEvidenceMatrixRow[] | undefined =>
+  list?.map((r) => ({
+    id: r.id,
+    allegation: r.allegation,
+    userPosition: r.user_position,
+    evidenceOffered: r.evidence_offered,
+    evidenceGap: r.evidence_gap,
+    inconsistency: r.inconsistency,
+    status: r.status,
+  }));
+
+const normalizeRejectedFiles = (list?: BackendNoticeRejectedFile[]): NoticeRejectedFile[] | undefined =>
+  list?.map((f) => ({ file: f.file, reason: f.reason }));
 
 const normalizeAllegationCoverage = (
   list?: BackendNoticeAllegationCoverage[],
@@ -421,6 +485,34 @@ const normalizeAllegationCoverage = (
     replySection: c.reply_section,
     reason: c.reason,
   }));
+
+/** Builds the full NoticeWorkflowData from any v3 turn response — analyse/submissions/draft/refine all share this shape. */
+const normalizeNoticeTurn = (result: BackendNoticeTurn): NoticeWorkflowData => ({
+  phase: result.phase,
+  conversationId: String(result.conversation.id),
+  revision: result.revision,
+  noticeProfile: normalizeNoticeProfile(result.notice_profile),
+  allegations: normalizeAllegations(result.allegations),
+  reviewNotes: normalizeReviewNotes(result.review_notes),
+  suggestedDocuments: result.suggested_documents,
+  evidenceMatrix: normalizeEvidenceMatrix(result.evidence_matrix),
+  followUpQuestions: result.follow_up_questions,
+  unaddressedAllegations: result.unaddressed_allegations,
+  extractedFacts: result.extracted_facts,
+  readyToDraft: result.ready_to_draft,
+  acceptedFiles: result.accepted_files,
+  rejectedFiles: normalizeRejectedFiles(result.rejected_files),
+  documentsOnRecord: result.documents_on_record,
+  noticeType: result.notice_type,
+  replyForm: result.reply_form,
+  deadline: result.deadline,
+  fraudTrack: result.fraud_track,
+  disclaimer: result.disclaimer,
+  escalationWarning: result.escalation_warning,
+  allegationCoverage: normalizeAllegationCoverage(result.allegation_coverage),
+  instructionApplied: result.instruction_applied,
+  legacy: result.legacy,
+});
 
 const normalizeAttachment = (a: BackendAttachment | null | undefined): MessageAttachment | undefined =>
   a?.filename
@@ -704,11 +796,11 @@ export const chatService = {
   },
 
   /**
-   * Stage 1 of the staged Notice Agent workflow (POST /ai/notice/analyze
-   * or /ai/notice/analyze-file) — replaces the legacy one-shot
-   * /ai/notice/generate for new conversations, per the vendor's own
-   * §B6 note ("New UI should use the staged endpoints"). Returns
-   * summary + allegations only; never a drafted reply at this stage.
+   * v3 Notice Agent — POST /ai/notice/analyze or /ai/notice/analyze-file.
+   * Returns allegations + notice profile ONLY; the vendor's own rule is
+   * "analyze never returns a draft" — the reply comes later from
+   * submitNoticeFacts() (auto-drafts once every allegation is answered)
+   * or draftNotice() (explicit/forced).
    */
   analyzeNotice: async (
     threadId: string | null,
@@ -729,9 +821,9 @@ export const chatService = {
     if (threadId) form.append("conversation_id", threadId);
     if (file) form.append("file", file);
 
-    let data: ApiEnvelope<BackendNoticeAnalyzeResult>;
+    let data: ApiEnvelope<BackendNoticeTurn>;
     try {
-      ({ data } = await api.post<ApiEnvelope<BackendNoticeAnalyzeResult>>(endpoint, form, {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(endpoint, form, {
         headers: { "Content-Type": "multipart/form-data" },
         signal,
         onUploadProgress: onUploadProgress
@@ -742,8 +834,8 @@ export const chatService = {
       }));
     } catch (error) {
       // Surfaces the backend's NoticeUnavailableError detail ("neither the
-      // new nor the legacy endpoint could be reached") when both the staged
-      // and legacy vendor paths are down, instead of a generic axios error.
+      // v3 nor the legacy endpoint could be reached") when both vendor
+      // paths are down, instead of a generic axios error.
       throw new Error(extractNoticeErrorDetail(error, "Unable to analyse the notice. Please try again."));
     }
 
@@ -752,16 +844,6 @@ export const chatService = {
       moduleId: context.moduleId,
       toolId: context.toolId,
     });
-
-    const notice: NoticeWorkflowData = {
-      stage: result.stage,
-      conversationId: String(result.conversation.id),
-      analysisId: result.analysis_id,
-      noticeSummary: normalizeNoticeSummary(result.notice_summary),
-      allegations: normalizeAllegations(result.allegations),
-      optionalInputsPrompt: normalizeOptionalInputsPrompt(result.optional_inputs_prompt),
-      legacy: result.legacy,
-    };
 
     return {
       userMessage: {
@@ -777,52 +859,42 @@ export const chatService = {
         role: "assistant",
         content: result.assistant_message.answer ?? "",
         createdAt: result.assistant_message.created_at,
-        // Only populated on the legacy fallback path — the staged /analyze
+        // Only populated on the legacy fallback path — a real /analyze
         // response never returns sources (no reply has been drafted yet).
         citations: normalizeNoticeSources(result.sources),
         attachments: [],
-        notice,
+        notice: normalizeNoticeTurn(result),
       },
       thread: normalizedThread,
     };
   },
 
-  /** Stage 2 — POST /ai/notice/draft. `userInputs` may be omitted entirely ("draft now"). */
-  draftNotice: async (
+  /**
+   * POST /ai/notice/submissions — the facts/evidence loop. Send facts, an
+   * evidence description, an answer to a follow-up question, or a "reply
+   * as it is" style message. Auto-drafts (phase "DRAFTED", full reply
+   * present) once every allegation is answered.
+   */
+  submitNoticeFacts: async (
     threadId: string,
-    userInputs: Record<string, unknown> | undefined,
+    message: string,
     context: AiQueryContext,
+    readyToDraft = false,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    let data: ApiEnvelope<BackendNoticeDraftResult>;
+    let data: ApiEnvelope<BackendNoticeTurn>;
     try {
-      ({ data } = await api.post<ApiEnvelope<BackendNoticeDraftResult>>(
-        endpoints.ai.noticeDraft,
-        { conversation_id: requireConversationId(threadId), user_inputs: userInputs ?? null },
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(
+        endpoints.ai.noticeSubmissions,
+        { conversation_id: requireConversationId(threadId), message, ready_to_draft: readyToDraft },
         { signal },
       ));
     } catch (error) {
-      throw new Error(extractNoticeErrorDetail(error, "Unable to draft the reply. Please try again."));
+      throw new Error(extractNoticeErrorDetail(error, "Unable to submit those details. Please try again."));
     }
 
     const result = data.data;
-    const normalizedThread = normalizeThread(result.conversation, {
-      moduleId: context.moduleId,
-      toolId: context.toolId,
-    });
-
-    const notice: NoticeWorkflowData = {
-      stage: result.stage,
-      conversationId: String(result.conversation.id),
-      draftId: result.draft_id,
-      replyForm: result.reply_form,
-      deadline: result.deadline,
-      fraudTrack: result.fraud_track,
-      allegationCoverage: normalizeAllegationCoverage(result.allegation_coverage),
-      advisoryNotes: result.advisory_notes,
-      escalationWarning: result.escalation_warning,
-      disclaimer: result.disclaimer,
-    };
+    const normalizedThread = normalizeThread(result.conversation, { moduleId: context.moduleId, toolId: context.toolId });
 
     return {
       userMessage: {
@@ -840,22 +912,125 @@ export const chatService = {
         createdAt: result.assistant_message.created_at,
         citations: normalizeNoticeSources(result.sources),
         attachments: [],
-        notice,
+        notice: normalizeNoticeTurn(result),
       },
       thread: normalizedThread,
     };
   },
 
-  /** Stage 3 — POST /ai/notice/refine. Repeatable; each call bumps `revision` and returns a new draft_id. */
+  /** POST /ai/notice/submissions-file — multipart evidence upload, multiple files in one call. */
+  submitNoticeEvidenceFile: async (
+    threadId: string,
+    files: File[],
+    note: string,
+    context: AiQueryContext,
+    onUploadProgress?: (percent: number) => void,
+    signal?: AbortSignal,
+  ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
+    const form = new FormData();
+    form.append("conversation_id", threadId);
+    if (note) form.append("note", note);
+    files.forEach((f) => form.append("files", f));
+
+    let data: ApiEnvelope<BackendNoticeTurn>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(endpoints.ai.noticeSubmissionsFile, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+        signal,
+        onUploadProgress: onUploadProgress
+          ? (event) => {
+              if (event.total) onUploadProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          : undefined,
+      }));
+    } catch (error) {
+      throw new Error(extractNoticeErrorDetail(error, "Unable to submit that evidence. Please try again."));
+    }
+
+    const result = data.data;
+    const normalizedThread = normalizeThread(result.conversation, { moduleId: context.moduleId, toolId: context.toolId });
+    const attachments = files.map((f) => ({ id: `local-${f.name}`, name: f.name, size: f.size, type: f.type }));
+
+    return {
+      userMessage: {
+        id: String(result.user_message.id),
+        role: "user",
+        content: result.user_message.query,
+        createdAt: result.user_message.created_at,
+        citations: [],
+        attachments,
+      },
+      assistantMessage: {
+        id: String(result.assistant_message.id),
+        role: "assistant",
+        content: result.assistant_message.answer ?? "",
+        createdAt: result.assistant_message.created_at,
+        citations: normalizeNoticeSources(result.sources),
+        attachments: [],
+        notice: normalizeNoticeTurn(result),
+      },
+      thread: normalizedThread,
+    };
+  },
+
+  /** POST /ai/notice/draft — force a draft explicitly, optionally with extra instructions or the DIN ground included. */
+  draftNotice: async (
+    threadId: string,
+    options: { includeDinGround?: boolean; extraInstruction?: string; force?: boolean } | undefined,
+    context: AiQueryContext,
+    signal?: AbortSignal,
+  ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
+    let data: ApiEnvelope<BackendNoticeTurn>;
+    try {
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(
+        endpoints.ai.noticeDraft,
+        {
+          conversation_id: requireConversationId(threadId),
+          include_din_ground: options?.includeDinGround ?? false,
+          extra_instruction: options?.extraInstruction ?? "",
+          force: options?.force ?? false,
+        },
+        { signal },
+      ));
+    } catch (error) {
+      throw new Error(extractNoticeErrorDetail(error, "Unable to draft the reply. Please try again."));
+    }
+
+    const result = data.data;
+    const normalizedThread = normalizeThread(result.conversation, { moduleId: context.moduleId, toolId: context.toolId });
+
+    return {
+      userMessage: {
+        id: String(result.user_message.id),
+        role: "user",
+        content: result.user_message.query,
+        createdAt: result.user_message.created_at,
+        citations: [],
+        attachments: [],
+      },
+      assistantMessage: {
+        id: String(result.assistant_message.id),
+        role: "assistant",
+        content: result.assistant_message.answer ?? "",
+        createdAt: result.assistant_message.created_at,
+        citations: normalizeNoticeSources(result.sources),
+        attachments: [],
+        notice: normalizeNoticeTurn(result),
+      },
+      thread: normalizedThread,
+    };
+  },
+
+  /** POST /ai/notice/refine — repeatable; edits the current draft. v3 has no draft_id, acts on the session implicitly. */
   refineNoticeReply: async (
     threadId: string,
     instruction: string,
     context: AiQueryContext,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    let data: ApiEnvelope<BackendNoticeRefineResult>;
+    let data: ApiEnvelope<BackendNoticeTurn>;
     try {
-      ({ data } = await api.post<ApiEnvelope<BackendNoticeRefineResult>>(
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(
         endpoints.ai.noticeRefine,
         { conversation_id: requireConversationId(threadId), instruction },
         { signal },
@@ -865,20 +1040,7 @@ export const chatService = {
     }
 
     const result = data.data;
-    const normalizedThread = normalizeThread(result.conversation, {
-      moduleId: context.moduleId,
-      toolId: context.toolId,
-    });
-
-    const notice: NoticeWorkflowData = {
-      stage: result.stage,
-      conversationId: String(result.conversation.id),
-      draftId: result.draft_id,
-      revision: result.revision,
-      allegationCoverage: normalizeAllegationCoverage(result.allegation_coverage),
-      disclaimer: result.disclaimer,
-      changesSummary: result.changes_summary,
-    };
+    const normalizedThread = normalizeThread(result.conversation, { moduleId: context.moduleId, toolId: context.toolId });
 
     return {
       userMessage: {
@@ -896,22 +1058,27 @@ export const chatService = {
         createdAt: result.assistant_message.created_at,
         citations: [],
         attachments: [],
-        notice,
+        notice: normalizeNoticeTurn(result),
       },
       thread: normalizedThread,
     };
   },
 
-  /** §B5 — POST /ai/notice/ask. A grounded question about the analysed notice; never changes stage or the current draft. */
+  /**
+   * POST /ai/notice/ask — COMPATIBILITY endpoint only (v3 has no
+   * standalone ask API). The backend dispatches this internally to
+   * submissions or refine depending on phase. Prefer submitNoticeFacts /
+   * refineNoticeReply directly in new code.
+   */
   askNotice: async (
     threadId: string,
     question: string,
     context: AiQueryContext,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
-    let data: ApiEnvelope<BackendNoticeAskResult>;
+    let data: ApiEnvelope<BackendNoticeTurn>;
     try {
-      ({ data } = await api.post<ApiEnvelope<BackendNoticeAskResult>>(
+      ({ data } = await api.post<ApiEnvelope<BackendNoticeTurn>>(
         endpoints.ai.noticeAsk,
         { conversation_id: requireConversationId(threadId), question },
         { signal },
@@ -921,10 +1088,7 @@ export const chatService = {
     }
 
     const result = data.data;
-    const normalizedThread = normalizeThread(result.conversation, {
-      moduleId: context.moduleId,
-      toolId: context.toolId,
-    });
+    const normalizedThread = normalizeThread(result.conversation, { moduleId: context.moduleId, toolId: context.toolId });
 
     return {
       userMessage: {
@@ -940,9 +1104,9 @@ export const chatService = {
         role: "assistant",
         content: result.assistant_message.answer ?? "",
         createdAt: result.assistant_message.created_at,
-        citations: [],
+        citations: normalizeNoticeSources(result.sources),
         attachments: [],
-        notice: { stage: result.stage, conversationId: String(result.conversation.id) },
+        notice: normalizeNoticeTurn(result),
       },
       thread: normalizedThread,
     };
