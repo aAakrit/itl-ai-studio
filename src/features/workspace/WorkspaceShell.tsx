@@ -231,12 +231,17 @@ export function WorkspaceShell() {
         const backendConversationId = isNewConversation ? null : localThreadId;
         const context = { moduleId: requestModuleId, toolId: requestToolId };
 
-        // Notice Reply now runs the staged workflow (analyse -> draft ->
-        // refine): the composer's first message in a new conversation
-        // always analyses the pasted/attached notice; a typed follow-up in
-        // an existing notice conversation is a grounded question (§B5),
-        // never a redraft — drafting/refining happen from the dedicated
-        // controls on the notice card itself, not free text here.
+        // Notice Reply v3: the composer's first message in a new
+        // conversation always analyses the pasted/attached notice. A
+        // typed follow-up in an EXISTING notice conversation routes by
+        // the conversation's current phase — facts/evidence while still
+        // collecting, or a refine instruction once a draft exists —
+        // rather than a single generic "ask" call, matching the vendor's
+        // own two-endpoint design.
+        const lastNoticePhase = !isNewConversation
+          ? [...(thread?.messages ?? [])].reverse().find((m) => m.notice)?.notice?.phase
+          : undefined;
+
         const { userMessage, assistantMessage, thread: backendThread } =
           requestToolId === "notice-reply"
             ? isNewConversation
@@ -248,7 +253,9 @@ export function WorkspaceShell() {
                   setUploadProgress,
                   controller.signal,
                 )
-              : await chatService.askNotice(localThreadId!, prompt, context, controller.signal)
+              : lastNoticePhase === "DRAFTED"
+                ? await chatService.refineNoticeReply(localThreadId!, prompt, context, controller.signal)
+                : await chatService.submitNoticeFacts(localThreadId!, prompt, context, false, controller.signal)
             : isFileTool(requestToolId)
               ? await chatService.sendFileMessage(
                   backendConversationId,
@@ -315,17 +322,63 @@ export function WorkspaceShell() {
     ],
   );
 
-  // Stage 2/3 of the Notice Agent workflow (draft / refine) are triggered
-  // from controls inside the notice card itself (NoticeWorkflowCard), not
-  // the composer — these are the handlers it calls. Kept close to
-  // handleSend's error/append pattern but simpler: no optimistic user
-  // bubble is needed since the triggering action (a button click / mini
-  // form submit) is already visible feedback.
-  const handleNoticeDraft = useCallback(
-    async (threadId: string, userInputs?: Record<string, unknown>) => {
+  // Notice card actions (facts submission, evidence upload, force-draft,
+  // refine) are triggered from controls inside NoticeWorkflowCard, not the
+  // composer — these are the handlers it calls. No optimistic user bubble
+  // is needed since the triggering action (a button click / input submit)
+  // is already visible feedback.
+  const handleNoticeSubmitFacts = useCallback(
+    async (threadId: string, message: string, readyToDraft?: boolean) => {
       setIsSending(true);
       try {
-        const { assistantMessage, thread: backendThread } = await chatService.draftNotice(threadId, userInputs, {
+        const { assistantMessage, thread: backendThread } = await chatService.submitNoticeFacts(
+          threadId,
+          message,
+          { moduleId: activeModuleId, toolId: activeToolId },
+          readyToDraft,
+        );
+        addMessage(threadId, assistantMessage);
+        if (backendThread) {
+          upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
+        }
+      } catch (error) {
+        addMessage(threadId, createErrorMessage(error instanceof Error && !axios.isAxiosError(error) ? error.message : undefined));
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [activeModuleId, activeToolId, addMessage, upsertThread],
+  );
+
+  const handleNoticeSubmitEvidence = useCallback(
+    async (threadId: string, files: File[], note: string, forceDraft?: boolean) => {
+      setIsSending(true);
+      try {
+        const { assistantMessage, thread: backendThread } = await chatService.submitNoticeEvidenceFile(
+          threadId,
+          files,
+          note,
+          { moduleId: activeModuleId, toolId: activeToolId },
+          forceDraft,
+        );
+        addMessage(threadId, assistantMessage);
+        if (backendThread) {
+          upsertThread({ id: backendThread.id, title: backendThread.title, updatedAt: backendThread.updatedAt });
+        }
+      } catch (error) {
+        addMessage(threadId, createErrorMessage(error instanceof Error && !axios.isAxiosError(error) ? error.message : undefined));
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [activeModuleId, activeToolId, addMessage, upsertThread],
+  );
+
+  const handleNoticeDraft = useCallback(
+    async (threadId: string, options?: { includeDinGround?: boolean; extraInstruction?: string; force?: boolean }) => {
+      setIsSending(true);
+      try {
+        const { assistantMessage, thread: backendThread } = await chatService.draftNotice(threadId, options, {
           moduleId: activeModuleId,
           toolId: activeToolId,
         });
@@ -449,6 +502,8 @@ export function WorkspaceShell() {
                     message={m}
                     threadId={thread.id}
                     isLatest={i === thread.messages.length - 1}
+                    onNoticeSubmitFacts={handleNoticeSubmitFacts}
+                    onNoticeSubmitEvidence={handleNoticeSubmitEvidence}
                     onNoticeDraft={handleNoticeDraft}
                     onNoticeRefine={handleNoticeRefine}
                     noticeActionPending={isSending}

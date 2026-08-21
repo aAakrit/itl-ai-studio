@@ -66,7 +66,7 @@ export function ChatMessageBubble({
   /** Only the latest message in a thread shows interactive notice controls. */
   isLatest?: boolean;
   onNoticeSubmitFacts?: (threadId: string, message: string, readyToDraft?: boolean) => void;
-  onNoticeSubmitEvidence?: (threadId: string, files: File[], note: string) => void;
+  onNoticeSubmitEvidence?: (threadId: string, files: File[], note: string, forceDraft?: boolean) => void;
   onNoticeDraft?: (threadId: string, options?: { includeDinGround?: boolean; extraInstruction?: string; force?: boolean }) => void;
   onNoticeRefine?: (threadId: string, instruction: string) => void;
   noticeActionPending?: boolean;
@@ -383,7 +383,7 @@ function NoticeWorkflowCard({
   isLatest: boolean;
   pending: boolean;
   onSubmitFacts?: (threadId: string, message: string, readyToDraft?: boolean) => void;
-  onSubmitEvidence?: (threadId: string, files: File[], note: string) => void;
+  onSubmitEvidence?: (threadId: string, files: File[], note: string, forceDraft?: boolean) => void;
   onDraft?: (threadId: string, options?: { includeDinGround?: boolean; extraInstruction?: string; force?: boolean }) => void;
   onRefine?: (threadId: string, instruction: string) => void;
 }) {
@@ -411,9 +411,17 @@ function NoticeWorkflowCard({
     if (evidenceInputRef.current) evidenceInputRef.current.value = "";
   };
 
-  const handleSendEvidence = () => {
+  /** Attach more evidence without generating yet — lets the vendor auto-draft only once it decides every allegation is addressed. */
+  const handleAddMoreEvidence = () => {
     if (!evidenceFiles.length) return;
-    onSubmitEvidence?.(threadId, evidenceFiles, evidenceNote);
+    onSubmitEvidence?.(threadId, evidenceFiles, evidenceNote, false);
+    setEvidenceFiles([]);
+    setEvidenceNote("");
+  };
+
+  /** "Reply" — submits any staged evidence AND guarantees a generated reply back in one round trip, using the notice plus everything attached so far. */
+  const handleReplyWithEvidence = () => {
+    onSubmitEvidence?.(threadId, evidenceFiles, evidenceNote, true);
     setEvidenceFiles([]);
     setEvidenceNote("");
   };
@@ -529,15 +537,34 @@ function NoticeWorkflowCard({
               <Paperclip className="h-3 w-3" /> Attach evidence
             </Button>
             {evidenceFiles.length > 0 && (
-              <Button size="sm" className="h-7 gap-1 text-[11px]" disabled={pending} onClick={handleSendEvidence}>
-                {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
-                Submit evidence
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-[11px]"
+                  disabled={pending}
+                  onClick={handleAddMoreEvidence}
+                  title="Submit these documents and keep answering follow-ups before drafting"
+                >
+                  {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                  Submit {evidenceFiles.length} document{evidenceFiles.length > 1 ? "s" : ""}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 gap-1 text-[11px]"
+                  disabled={pending}
+                  onClick={handleReplyWithEvidence}
+                  title="Generate the reply now using the notice and all attached documents"
+                >
+                  {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                  Reply
+                </Button>
+              </>
             )}
             <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground" disabled={pending} onClick={handleReplyAsItIs}>
               Reply as it is
             </Button>
-            {phase === "COLLECTING_FACTS" && (
+            {phase === "COLLECTING_FACTS" && evidenceFiles.length === 0 && (
               <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground" disabled={pending} onClick={handleForceDraft}>
                 Draft now anyway
               </Button>

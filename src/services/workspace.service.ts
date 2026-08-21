@@ -918,18 +918,26 @@ export const chatService = {
     };
   },
 
-  /** POST /ai/notice/submissions-file — multipart evidence upload, multiple files in one call. */
+  /**
+   * POST /ai/notice/submissions-file — multipart evidence upload, multiple
+   * files in one call. `forceDraft: true` (the "Reply" action) guarantees a
+   * generated reply comes back in this same call — chained server-side to
+   * an explicit forced draft if the vendor's own upload response doesn't
+   * already include one.
+   */
   submitNoticeEvidenceFile: async (
     threadId: string,
     files: File[],
     note: string,
     context: AiQueryContext,
+    forceDraft = false,
     onUploadProgress?: (percent: number) => void,
     signal?: AbortSignal,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
     const form = new FormData();
     form.append("conversation_id", threadId);
     if (note) form.append("note", note);
+    if (forceDraft) form.append("force_draft", "true");
     files.forEach((f) => form.append("files", f));
 
     let data: ApiEnvelope<BackendNoticeTurn>;
