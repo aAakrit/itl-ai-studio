@@ -6,7 +6,7 @@ import { pricingService } from "@/services/pricing.service";
 import { faqService } from "@/services/faq.service";
 import { contactService } from "@/services/contact.service";
 import { workspaceService, chatService } from "@/services/workspace.service";
-import { adminService, analyticsService, subscriptionService, userService } from "@/services/admin.service";
+import { adminService, analyticsService, paymentService, subscriptionService, userService } from "@/services/admin.service";
 import { legalService } from "@/services/legal.service";
 import { cmsContentService, cmsService, navigationService } from "@/services/cms.service";
 import { featureService } from "@/services/features.service";
@@ -143,6 +143,33 @@ export const useActivateSubscription = () =>
     subscriptionService.activate(id, reason),
   );
 
+/* ---------- Admin payments ---------- */
+
+export const useAdminPayments = (params: PaymentListParams) =>
+  useQuery({
+    queryKey: ["admin", "payments", params],
+    queryFn: () => paymentService.list(params),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAdminPayment = (id: number | null) =>
+  useQuery({
+    queryKey: ["admin", "payments", "detail", id],
+    queryFn: () => paymentService.get(id!),
+    enabled: id != null,
+  });
+
+export const useRecordCashPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CashPaymentCreate) => paymentService.recordCash(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "payments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+};
 
 export const useAdminNav = () => useQuery({ queryKey: ["admin", "nav"], queryFn: () => adminService.getNav(), staleTime: Infinity });
 export const useAnalytics = () => useQuery({ queryKey: ["analytics"], queryFn: () => analyticsService.getOverview(), staleTime: ADMIN_STALE });
@@ -216,6 +243,8 @@ export { useCommandStore } from "@/store/commandStore";
 import { useFeatureFlagStore } from "@/store/featureFlagStore";
 import { usePermissionStore } from "@/store/permissionStore";
 import type {
+  CashPaymentCreate,
+  PaymentListParams,
   SubscriptionCreateManual,
   SubscriptionExtend,
   SubscriptionListParams,

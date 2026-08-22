@@ -55,6 +55,8 @@ export type SubscriptionSource = "manual" | "complimentary";
 
 export interface SubscriptionSummary {
   id: number | null;
+  user_name?: string | null;
+  user_email?: string | null;
   plan_id: string | null;
   plan_name: string | null;
   billing_cycle: string | null;
@@ -114,6 +116,10 @@ export interface AdminUser {
   email: string;
   mobile?: string | null;
   firm?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pin_code?: string | null;
   plan?: string | null;
   role: string;
   status: string;
@@ -128,16 +134,29 @@ export interface AdminUser {
 export interface AdminUserDetail extends AdminUser {
   telephone?: string | null;
   fax?: string | null;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  pin_code?: string | null;
   is_admin?: boolean;
   is_staff?: boolean;
   approved_at?: string | null;
   approved_by?: string | null;
   updated_at?: string | null;
   subscription_history?: SubscriptionSummary[] | null;
+}
+
+/** Payload for PUT /admin/users/{id} — password is write-only, never returned. */
+export interface AdminUserUpdate {
+  name?: string;
+  firm?: string;
+  mobile?: string;
+  telephone?: string;
+  fax?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pin_code?: string;
+  status?: string;
+  is_admin?: boolean;
+  is_staff?: boolean;
+  password?: string;
 }
 
 export interface AdminAuditEvent {
@@ -201,4 +220,51 @@ export interface SubscriptionUpdate {
 export interface SubscriptionExtend {
   days: number;
   reason?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment request/response payloads — mirrors GET/POST /admin/payments */
+/* ------------------------------------------------------------------ */
+
+export interface PaymentListParams {
+  page?: number;
+  limit?: number;
+  status?: PaymentStatus | string;
+  gateway?: PaymentType | string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface AdminPayment {
+  id: number;
+  user_id: number;
+  subscription_id: number | null;
+  gateway: string;
+  status: string;
+  order_id: string;
+  gateway_txn_id: string | null;
+  plan_id: string;
+  plan_name: string;
+  base_price: number;
+  gst_rate: number;
+  gst_amount: number;
+  payable_amount: number;
+  currency: string;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_mobile?: string | null;
+  invoice_number: string | null;
+  receipt_number: string | null;
+  payment_notes?: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface CashPaymentCreate {
+  user_id: number;
+  plan_id: string;
+  billing_cycle: BillingCycle;
+  override_base_price?: number | null;
+  payment_notes?: string | null;
 }

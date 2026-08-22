@@ -61,6 +61,7 @@ import {
   Trash2,
   History,
   CreditCard,
+  KeyRound,
 } from "lucide-react";
 import {
   EMPTY_FILTERS,
@@ -72,12 +73,8 @@ import { UserDetailDialog } from "@/features/admin/users/UserDetailDialog";
 import {
   accountStatusClass,
   formatDate,
-  formatMoney,
   formatNumber,
   initials,
-  paymentStatusClass,
-  paymentStatusLabel,
-  paymentTypeLabel,
   subscriptionStatusClass,
   subscriptionStatusLabel,
 } from "@/features/admin/users/admin-user-utils";
@@ -90,13 +87,9 @@ export const Route = createFileRoute("/admin/users")({
 
 const SORTABLE: { id: string; label: string; className?: string }[] = [
   { id: "name", label: "User" },
-  { id: "", label: "Role" },
   { id: "status", label: "Account" },
-  { id: "plan", label: "Plan" },
-  { id: "subscription_status", label: "Subscription" },
-  { id: "expiry_date", label: "Expiry" },
-  { id: "payment_status", label: "Payment" },
-  { id: "", label: "AI usage" },
+  { id: "plan", label: "Plan & Subscription" },
+  { id: "", label: "Contact & Company" },
 ];
 
 function AdminUsersPage() {
@@ -246,7 +239,7 @@ function AdminUsersPage() {
         </div>
 
         {isLoading && !data ? (
-          <TableSkeleton rows={8} cols={6} />
+          <TableSkeleton rows={8} cols={4} />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -278,92 +271,88 @@ function AdminUsersPage() {
               <TableBody>
                 {users.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-14 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={5} className="py-14 text-center text-sm text-muted-foreground">
                       No users match these filters.
                     </TableCell>
                   </TableRow>
                 )}
                 {users.map((u) => {
                   const sub = u.subscription?.id ? u.subscription : null;
-                  const pay = u.payment?.id ? u.payment : null;
-                  const ai = u.ai_usage;
-                  const aiConfigured = ai && ai.daily_limit !== null && ai.daily_limit !== undefined;
+                  const planLabel = sub?.plan_name ?? u.plan;
+                  const contactBits = [u.address, u.city].filter(Boolean).join(", ");
                   return (
                     <TableRow key={u.id}>
+                      {/* Name · Email · Password (joined) */}
                       <TableCell>
                         <div className="flex items-center gap-2.5">
                           <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full gradient-primary text-[11px] font-bold text-primary-foreground">
                             {initials(u.name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{u.name}</p>
+                            <button
+                              className="truncate text-sm font-medium hover:underline"
+                              onClick={() => setDetail({ id: u.id, tab: "overview" })}
+                              title="View user"
+                            >
+                              {u.name}
+                            </button>
                             <p className="truncate text-[11px] text-muted-foreground">{u.email}</p>
-                            {u.mobile && (
-                              <p className="text-[11px] text-muted-foreground">{u.mobile}</p>
-                            )}
+                            <button
+                              className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                              onClick={() => setEditUserId(u.id)}
+                              title="Password is hashed and can't be viewed — set a new one from Edit"
+                            >
+                              <KeyRound className="h-3 w-3" /> •••••••• · Reset
+                            </button>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm capitalize">{u.role}</TableCell>
+
+                      {/* Role · Account status (joined) */}
                       <TableCell>
-                        <Badge className={cn("capitalize", accountStatusClass(u.status))}>
-                          {u.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {sub?.plan_name ?? u.plan ?? "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {sub ? (
-                          <Badge className={subscriptionStatusClass(sub.status)}>
-                            {subscriptionStatusLabel(sub.status)}
+                        <div className="space-y-1">
+                          <Badge className={cn("capitalize", accountStatusClass(u.status))}>
+                            {u.status}
                           </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No Subscription</span>
-                        )}
+                          <p className="text-[11px] capitalize text-muted-foreground">{u.role}</p>
+                        </div>
                       </TableCell>
+
+                      {/* Plan / Subscription (joined, single column) */}
                       <TableCell>
-                        {sub?.expiry_date ? (
-                          <div>
-                            <p className="whitespace-nowrap text-xs font-medium">
-                              {formatDate(sub.expiry_date)}
-                            </p>
-                            {sub.remaining_days !== null && sub.remaining_days !== undefined && (
-                              <p className="text-[11px] text-muted-foreground">
-                                {formatNumber(sub.remaining_days)} days remaining
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="capitalize">
+                            {planLabel ?? "No plan"}
+                          </Badge>
+                          {sub ? (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Badge className={subscriptionStatusClass(sub.status)}>
+                                {subscriptionStatusLabel(sub.status)}
+                              </Badge>
+                              {sub.expiry_date && (
+                                <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+                                  exp. {formatDate(sub.expiry_date)}
+                                  {sub.remaining_days !== null && sub.remaining_days !== undefined
+                                    ? ` (${formatNumber(sub.remaining_days)}d)`
+                                    : ""}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">No Subscription</p>
+                          )}
+                        </div>
                       </TableCell>
+
+                      {/* Address · Number · Company (joined) */}
                       <TableCell>
-                        {pay ? (
-                          <div className="space-y-1">
-                            <Badge className={paymentStatusClass(pay.status)}>
-                              {paymentStatusLabel(pay.status)}
-                            </Badge>
-                            <p className="whitespace-nowrap text-[11px] text-muted-foreground">
-                              {paymentTypeLabel(pay.type)} ·{" "}
-                              {formatMoney(pay.amount, pay.currency ?? "INR")}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No Payment</span>
-                        )}
+                        <p className="max-w-[220px] truncate text-sm">{contactBits || "—"}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {u.mobile ?? "—"}
+                          {u.firm ? ` · ${u.firm}` : ""}
+                        </p>
                       </TableCell>
-                      <TableCell>
-                        {aiConfigured ? (
-                          <span className="whitespace-nowrap text-xs">
-                            {formatNumber(ai!.daily_used)} / {formatNumber(ai!.daily_limit)} daily
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Not configured</span>
-                        )}
-                      </TableCell>
+
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -501,9 +490,11 @@ function EditUserDialog({
   const user = data as AdminUserDetail | undefined;
   const updateMutation = useUpdateUser();
   const [form, setForm] = useState<Partial<AdminUserDetail>>({});
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     if (user) setForm(user);
+    setNewPassword("");
   }, [user]);
 
   const set = <K extends keyof AdminUserDetail>(key: K, value: AdminUserDetail[K]) =>
@@ -526,11 +517,13 @@ function EditUserDialog({
           pin_code: form.pin_code,
           is_admin: form.is_admin,
           is_staff: form.is_staff,
+          ...(newPassword.trim() ? { password: newPassword.trim() } : {}),
         },
       },
       {
         onSuccess: () => {
-          toast.success("User updated");
+          toast.success(newPassword.trim() ? "User updated and password reset" : "User updated");
+          setNewPassword("");
           onOpenChange(false);
         },
         onError: () => toast.error("Couldn't save changes — please try again."),
@@ -576,6 +569,20 @@ function EditUserDialog({
               <div>
                 <Label htmlFor="telephone">Telephone</Label>
                 <Input id="telephone" value={form.telephone ?? ""} onChange={(e) => set("telephone", e.target.value)} />
+              </div>
+              <div className="col-span-2 space-y-1.5 rounded-lg border border-border/60 bg-secondary/30 p-3">
+                <Label htmlFor="new-password">Reset password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Leave blank to keep the current password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Passwords are hashed and can't be viewed — this sets a new one. The user isn't notified automatically.
+                </p>
               </div>
               <div className="col-span-2">
                 <Label htmlFor="address">Address</Label>

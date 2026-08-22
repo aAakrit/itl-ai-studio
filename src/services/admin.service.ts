@@ -1,9 +1,12 @@
 /* eslint-disable prettier/prettier */
 import type {
   AdminAuditEvent,
+  AdminPayment,
   AdminUser,
   AdminUserDetail,
+  CashPaymentCreate,
   Paginated,
+  PaymentListParams,
   SubscriptionCreateManual,
   SubscriptionExtend,
   SubscriptionListParams,
@@ -109,6 +112,28 @@ export const subscriptionService = {
   },
   async activate(id: number, reason?: string): Promise<SubscriptionSummary> {
     const { data } = await api.post(endpoints.adminSubscriptions.activate(id), clean({ reason }));
+    return data;
+  },
+};
+
+/**
+ * Admin Payment API — payment history plus recording an offline/cash
+ * payment. Online (Paytm) payments are created by the checkout flow, not
+ * here; this is the admin-facing read/record surface.
+ */
+export const paymentService = {
+  async list(params: PaymentListParams): Promise<Paginated<AdminPayment>> {
+    const { data } = await api.get(endpoints.adminPayments.list, {
+      params: clean(params as Record<string, unknown>),
+    });
+    return data;
+  },
+  async get(id: number): Promise<AdminPayment> {
+    const { data } = await api.get(endpoints.adminPayments.detail(id));
+    return data;
+  },
+  async recordCash(payload: CashPaymentCreate): Promise<AdminPayment> {
+    const { data } = await api.post(endpoints.adminPayments.recordCash, payload);
     return data;
   },
 };

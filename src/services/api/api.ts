@@ -119,6 +119,11 @@ export const endpoints = {
       cancel: (id: number) => `/admin/subscriptions/${id}/cancel`,
       activate: (id: number) => `/admin/subscriptions/${id}/activate`,
   },
+    adminPayments: {
+      list: "/admin/payments",
+      detail: (id: number) => `/admin/payments/${id}`,
+      recordCash: "/admin/payments/cash",
+  },
 
   profile: {
     me: "/profile/me",
