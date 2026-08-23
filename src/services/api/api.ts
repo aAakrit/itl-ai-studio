@@ -124,6 +124,11 @@ export const endpoints = {
       detail: (id: number) => `/admin/payments/${id}`,
       recordCash: "/admin/payments/cash",
   },
+  checkout: {
+    initiate: "/payments/initiate",
+    status: (orderId: string) => `/payments/${orderId}/status`,
+    recheck: (orderId: string) => `/payments/${orderId}/recheck`,
+  },
 
   profile: {
     me: "/profile/me",

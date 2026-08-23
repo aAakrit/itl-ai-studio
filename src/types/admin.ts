@@ -268,3 +268,24 @@ export interface CashPaymentCreate {
   override_base_price?: number | null;
   payment_notes?: string | null;
 }
+
+/* ------------------------------------------------------------------ */
+/* User-facing checkout — POST /payments/initiate                      */
+/* ------------------------------------------------------------------ */
+
+export interface PaymentInitiateRequest {
+  plan_id: string;
+  billing_cycle: BillingCycle;
+}
+
+export interface PaymentInitiateResponse {
+  order_id: string;
+  amount: number;
+  txn_token: string;
+  paytm_params: {
+    mid: string | null;
+    orderId: string;
+    txnToken: string;
+    checkoutUrl: string;
+  };
+}

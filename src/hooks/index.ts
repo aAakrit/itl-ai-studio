@@ -171,6 +171,31 @@ export const useRecordCashPayment = () => {
   });
 };
 
+/* ---------- User-facing checkout ---------- */
+
+export const useInitiatePayment = () =>
+  useMutation({
+    mutationFn: (payload: PaymentInitiateRequest) => checkoutService.initiate(payload),
+  });
+
+export const usePaymentStatus = (orderId: string | null, opts?: { refetchInterval?: number }) =>
+  useQuery({
+    queryKey: ["payments", "status", orderId],
+    queryFn: () => checkoutService.status(orderId!),
+    enabled: Boolean(orderId),
+    refetchInterval: opts?.refetchInterval,
+  });
+
+export const useRecheckPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) => checkoutService.recheck(orderId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["payments", "status", data.order_id], data);
+    },
+  });
+};
+
 export const useAdminNav = () => useQuery({ queryKey: ["admin", "nav"], queryFn: () => adminService.getNav(), staleTime: Infinity });
 export const useAnalytics = () => useQuery({ queryKey: ["analytics"], queryFn: () => analyticsService.getOverview(), staleTime: ADMIN_STALE });
 
@@ -244,6 +269,7 @@ import { useFeatureFlagStore } from "@/store/featureFlagStore";
 import { usePermissionStore } from "@/store/permissionStore";
 import type {
   CashPaymentCreate,
+  PaymentInitiateRequest,
   PaymentListParams,
   SubscriptionCreateManual,
   SubscriptionExtend,
@@ -251,6 +277,7 @@ import type {
   SubscriptionUpdate,
   UserListParams,
 } from "@/types/admin";
+import { checkoutService } from "@/services/checkout.service";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));
