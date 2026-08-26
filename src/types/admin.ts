@@ -115,6 +115,7 @@ export interface AdminUser {
   name: string;
   email: string;
   mobile?: string | null;
+  telephone?: string | null;
   firm?: string | null;
   address?: string | null;
   city?: string | null;
@@ -132,8 +133,7 @@ export interface AdminUser {
 }
 
 export interface AdminUserDetail extends AdminUser {
-  telephone?: string | null;
-  fax?: string | null;
+  gstin?: string | null;
   is_admin?: boolean;
   is_staff?: boolean;
   approved_at?: string | null;
@@ -148,7 +148,7 @@ export interface AdminUserUpdate {
   firm?: string;
   mobile?: string;
   telephone?: string;
-  fax?: string;
+  gstin?: string;
   address?: string;
   city?: string;
   state?: string;

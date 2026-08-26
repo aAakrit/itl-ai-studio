@@ -7,6 +7,7 @@ import { faqService } from "@/services/faq.service";
 import { contactService } from "@/services/contact.service";
 import { workspaceService, chatService } from "@/services/workspace.service";
 import { adminService, analyticsService, paymentService, subscriptionService, userService } from "@/services/admin.service";
+import { checkoutService } from "@/services/checkout.service";
 import { legalService } from "@/services/legal.service";
 import { cmsContentService, cmsService, navigationService } from "@/services/cms.service";
 import { featureService } from "@/services/features.service";
@@ -81,6 +82,12 @@ export const useDeleteUser = () =>
   useAdminUserMutation<ReasonArg>((id, arg) => adminService.deleteUser(id, arg?.reason));
 export const useUpdateUser = () =>
   useAdminUserMutation<Record<string, unknown>>((id, patch) => adminService.updateUser(id, patch));
+
+export const useExportUsers = () =>
+  useMutation({
+    mutationFn: (payload: { user_ids: number[]; format: "xlsx" | "docx" | "pdf"; detail: "short" | "full" }) =>
+      adminService.exportUsers(payload),
+  });
 
 /* ---------- Admin subscriptions ---------- */
 
@@ -277,7 +284,6 @@ import type {
   SubscriptionUpdate,
   UserListParams,
 } from "@/types/admin";
-import { checkoutService } from "@/services/checkout.service";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));

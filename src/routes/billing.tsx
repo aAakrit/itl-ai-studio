@@ -19,12 +19,6 @@ export const Route = createFileRoute("/billing")({
 
 type Cycle = "monthly" | "yearly";
 
-/**
- * Submits a real HTML form POST to Paytm's hosted checkout page — this is
- * the classic redirect flow (mid/orderId/txnToken as form fields), which
- * Paytm then owns until it POSTs back to our callback URL and we redirect
- * to /billing/return.
- */
 function redirectToPaytm(checkoutUrl: string, fields: Record<string, string>) {
   const form = document.createElement("form");
   form.method = "POST";

@@ -73,6 +73,24 @@ export const adminService = {
     });
     return data;
   },
+  /** Downloads the export file directly from the response headers'
+   * Content-Disposition filename — triggers a real browser save, no extra
+   * click needed. */
+  async exportUsers(payload: { user_ids: number[]; format: "xlsx" | "docx" | "pdf"; detail: "short" | "full" }) {
+    const response = await api.post(endpoints.adminUsers.export, payload, { responseType: "blob" });
+    const disposition = (response.headers as Record<string, string>)["content-disposition"] ?? "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `users-${payload.detail}.${payload.format}`;
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 /**

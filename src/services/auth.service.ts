@@ -13,7 +13,7 @@ export interface RegisterPayload {
   firm?: string;
   address?: string;
   telephone?: string;
-  fax?: string;
+  gstin?: string;
 }
 
 export const authService = {
@@ -46,7 +46,7 @@ export const authService = {
       firm: payload.firm,
       address: payload.address,
       telephone: payload.telephone,
-      fax: payload.fax,
+      gstin: payload.gstin,
     });
 
     return data;
@@ -65,20 +65,21 @@ export const authService = {
     return data;
   },
 
-  // OTP flows are not wired to the backend yet. Signatures match the call
-  // sites so the UI compiles and fails loudly instead of silently.
-  async requestPasswordOtp(_email: string): Promise<void> {
-    throw new Error("Not implemented");
+  async requestPasswordOtp(email: string): Promise<void> {
+    await api.post(endpoints.auth.passwordOtpRequest, { email });
   },
 
-  async verifyPasswordOtp(_email: string, _otp: string): Promise<{ ok: boolean }> {
-    throw new Error("Not implemented");
+  async verifyPasswordOtp(email: string, otp: string): Promise<{ ok: boolean }> {
+    const { data } = await api.post(endpoints.auth.passwordOtpVerify, { email, otp });
+    return data;
   },
 
-  async resetPassword(_email: string, _password: string): Promise<void> {
-    throw new Error("Not implemented");
+  async resetPassword(email: string, otp: string, password: string): Promise<void> {
+    await api.post(endpoints.auth.passwordReset, { email, otp, password });
   },
 
+  // Email-verification OTP is not part of this build — registration goes
+  // straight to "pending admin approval" instead of an email-verify step.
   async requestEmailOtp(_email: string): Promise<void> {
     throw new Error("Not implemented");
   },

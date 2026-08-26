@@ -10,8 +10,11 @@ import { AuthLayout } from "@/layouts/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { authService } from "@/services/auth.service";
 import { cn } from "@/lib/utils";
+import { TermsGateDialog } from "@/features/admin/auth/TermsGateDialog";
+
 
 export const Route = createFileRoute("/register")({
   component: Register,
@@ -38,7 +41,13 @@ const schema = z
     firm: z.string().max(120).optional().or(z.literal("")),
     address: z.string().max(200).optional().or(z.literal("")),
     telephone: z.string().max(20).optional().or(z.literal("")),
-    fax: z.string().max(20).optional().or(z.literal("")),
+    gstin: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, "Enter a valid 15-character GSTIN")
+      .optional()
+      .or(z.literal("")),
   })
   .refine((v) => v.password === v.confirm, {
     path: ["confirm"],
@@ -60,6 +69,8 @@ function scorePassword(pw: string) {
 function Register() {
   const nav = useNavigate();
   const [show, setShow] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const form = useForm<FormData>({ resolver: zodResolver(schema) });
   const password = form.watch("password") ?? "";
   const strength = useMemo(() => scorePassword(password), [password]);
@@ -73,6 +84,10 @@ function Register() {
   ][strength];
 
   async function onSubmit(values: FormData) {
+    if (!termsAccepted) {
+      toast.error("Please read and accept the Terms & Conditions first.");
+      return;
+    }
     await authService.register({
       name: values.name,
       email: values.email,
@@ -84,7 +99,7 @@ function Register() {
       firm: values.firm || undefined,
       address: values.address,
       telephone: values.telephone || undefined,
-      fax: values.fax || undefined,
+      gstin: values.gstin || undefined,
     });
     toast.success("Account created. Verify your email to continue.");
     nav({ to: "/login", });
@@ -228,15 +243,48 @@ function Register() {
               <Input placeholder="Office phone" className="h-11" {...form.register("telephone")} />
             </div>
             <div>
-              <Label className="mb-1.5 block text-xs">Fax</Label>
-              <Input placeholder="Fax" className="h-11" {...form.register("fax")} />
+              <Label className="mb-1.5 block text-xs">GSTIN</Label>
+              <Input
+                placeholder="e.g. 22AAAAA0000A1Z5"
+                className="h-11 uppercase"
+                {...form.register("gstin")}
+                onChange={(e) => form.setValue("gstin", e.target.value.toUpperCase())}
+              />
+              {err.gstin && <p className="mt-1 text-[11px] text-destructive">{err.gstin.message}</p>}
             </div>
           </div>
         </div>
 
+        <div className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-secondary/20 p-3">
+          <Checkbox
+            id="terms-accept"
+            checked={termsAccepted}
+            disabled={!termsAccepted}
+            onCheckedChange={(v) => setTermsAccepted(Boolean(v))}
+            className="mt-0.5"
+          />
+          <Label htmlFor="terms-accept" className="text-xs font-normal leading-relaxed text-muted-foreground">
+            {termsAccepted ? (
+              "You've read and accepted our Terms & Conditions."
+            ) : (
+              <>
+                I have read and agree to the{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="font-semibold text-primary underline underline-offset-2"
+                >
+                  Terms & Conditions
+                </button>
+                . The checkbox unlocks once you've scrolled through the full document.
+              </>
+            )}
+          </Label>
+        </div>
+
         <Button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !termsAccepted}
           className="h-11 w-full rounded-xl gradient-primary text-primary-foreground shadow-soft"
         >
           {submitting ? (
@@ -255,6 +303,12 @@ function Register() {
           <Link to="/privacy" className="underline">Privacy Policy</Link>.
         </p>
       </form>
+
+      <TermsGateDialog
+        open={termsOpen}
+        onOpenChange={setTermsOpen}
+        onAccept={() => setTermsAccepted(true)}
+      />
     </AuthLayout>
   );
 }

@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
@@ -35,22 +37,32 @@ function Forgot() {
       return;
     }
     setBusy(true);
-    await authService.requestPasswordOtp(email);
-    setBusy(false);
-    setStep("otp");
-    toast.success("OTP sent");
+    try {
+      await authService.requestPasswordOtp(email);
+      setStep("otp");
+      toast.success("If that email is registered, a code has been sent.");
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? "Couldn't send the code — please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verifyOtp() {
     setError(null);
     setBusy(true);
-    const r = await authService.verifyPasswordOtp(email, otp);
-    setBusy(false);
-    if (!r.ok) {
-      setError("Invalid or expired OTP.");
-      return;
+    try {
+      const r = await authService.verifyPasswordOtp(email, otp);
+      if (!r.ok) {
+        setError("Invalid or expired OTP.");
+        return;
+      }
+      setStep("password");
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? "Couldn't verify that code — please try again.");
+    } finally {
+      setBusy(false);
     }
-    setStep("password");
   }
 
   async function submitPassword() {
@@ -64,10 +76,15 @@ function Forgot() {
       return;
     }
     setBusy(true);
-    await authService.resetPassword(email, pw);
-    setBusy(false);
-    setStep("done");
-    toast.success("Password updated");
+    try {
+      await authService.resetPassword(email, otp, pw);
+      setStep("done");
+      toast.success("Password updated");
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? "Couldn't update your password — the code may have expired.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const steps = ["email", "otp", "password", "done"] as const;

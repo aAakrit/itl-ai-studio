@@ -88,8 +88,9 @@ export const endpoints = {
     logout: "/auth/logout",
     refresh: "/auth/refresh",
     me: "/auth/me",
-    forgot: "/auth/forgot-password",
-    resetPassword: "/auth/reset-password",
+    passwordOtpRequest: "/auth/password/otp/request",
+    passwordOtpVerify: "/auth/password/otp/verify",
+    passwordReset: "/auth/password/reset",
     verifyEmail: "/auth/verify-email",
     otp: "/auth/otp",
     resendOtp: "/auth/otp/resend",
@@ -108,6 +109,7 @@ export const endpoints = {
           `/admin/users/${id}/delete`,
       history: (id: number) =>
           `/admin/users/${id}/history`,
+      export: "/admin/users/export",
   },
     adminSubscriptions: {
       list: "/admin/subscriptions",
