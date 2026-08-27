@@ -286,6 +286,8 @@ export interface PaymentInitiateResponse {
     mid: string | null;
     orderId: string;
     txnToken: string;
-    checkoutUrl: string;
+    /** Paytm JS Checkout SDK script — load this, then window.Paytm.CheckoutJS.init()/.invoke(). */
+    scriptUrl: string;
+    isStaging: boolean;
   };
 }

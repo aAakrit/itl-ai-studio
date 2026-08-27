@@ -19,21 +19,78 @@ export const Route = createFileRoute("/billing")({
 
 type Cycle = "monthly" | "yearly";
 
-function redirectToPaytm(checkoutUrl: string, fields: Record<string, string>) {
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = checkoutUrl;
+/**
+ * Paytm JS Checkout — the current recommended integration
+ * (paytmpayments.com/docs/jscheckout-invoke-payment). Loads Paytm's SDK
+ * script and renders an iframe on this page; NOT a redirect to a
+ * Paytm-hosted page. On completion, Paytm's own default behavior (we
+ * don't set redirect:false) navigates the browser to our callbackUrl,
+ * which the backend then redirects to /billing/return — no extra wiring
+ * needed here for that part.
+ */
+function loadPaytmCheckoutScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const marker = "data-paytm-checkout";
+    const existing = document.querySelector(`script[${marker}]`);
+    if (existing?.getAttribute("src") === src && (window as any).Paytm?.CheckoutJS) {
+      resolve();
+      return;
+    }
+    existing?.remove();
 
-  Object.entries(fields).forEach(([name, value]) => {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
+    const script = document.createElement("script");
+    script.type = "application/javascript";
+    script.src = src;
+    script.crossOrigin = "anonymous";
+    script.setAttribute(marker, "true");
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Couldn't load Paytm's checkout script."));
+    document.head.appendChild(script);
   });
+}
 
-  document.body.appendChild(form);
-  form.submit();
+async function launchPaytmCheckout(params: {
+  scriptUrl: string;
+  orderId: string;
+  txnToken: string;
+  amount: string;
+}): Promise<void> {
+  await loadPaytmCheckoutScript(params.scriptUrl);
+
+  const Paytm = (window as any).Paytm;
+  if (!Paytm?.CheckoutJS) {
+    throw new Error("Paytm checkout didn't load correctly — please try again.");
+  }
+
+  return new Promise((resolve, reject) => {
+    Paytm.CheckoutJS.onLoad(() => {
+      Paytm.CheckoutJS.init({
+        root: "",
+        flow: "DEFAULT",
+        data: {
+          orderId: params.orderId,
+          token: params.txnToken,
+          tokenType: "TXN_TOKEN",
+          amount: params.amount,
+        },
+        handler: {
+          notifyMerchant: (eventName: string) => {
+            // The browser navigates away on a completed payment by
+            // default — this only fires for in-page events beforehand,
+            // most usefully when the person closes the checkout modal.
+            if (eventName === "APP_CLOSED") {
+              reject(new Error("Checkout closed."));
+            }
+          },
+        },
+      })
+        .then(() => {
+          Paytm.CheckoutJS.invoke();
+          resolve();
+        })
+        .catch(reject);
+    });
+  });
 }
 
 function Billing() {
@@ -51,17 +108,24 @@ function Billing() {
       { plan_id: planId, billing_cycle: cycle },
       {
         onSuccess: (res) => {
-          redirectToPaytm(res.paytm_params.checkoutUrl, {
-            mid: res.paytm_params.mid ?? "",
+          launchPaytmCheckout({
+            scriptUrl: res.paytm_params.scriptUrl,
             orderId: res.paytm_params.orderId,
             txnToken: res.paytm_params.txnToken,
+            amount: String(res.amount),
+          }).catch((e: any) => {
+            setPayingPlanId(null);
+            // A closed/cancelled checkout isn't an error worth alarming over.
+            if (e?.message !== "Checkout closed.") {
+              toast.error(e?.message ?? "Couldn't open checkout — please try again.");
+            }
           });
-          // Browser is about to navigate away to Paytm — no further state
-          // updates needed here.
         },
         onError: (e: any) => {
           setPayingPlanId(null);
-          toast.error(e?.response?.data?.detail ?? "Couldn't start checkout — please try again.");
+          const detail = e?.response?.data?.detail;
+          const message = typeof detail === "string" ? detail : detail?.message;
+          toast.error(message ?? "Couldn't start checkout — please try again.");
         },
       },
     );
@@ -144,7 +208,7 @@ function Billing() {
                 >
                   {isPaying ? (
                     <>
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Redirecting to Paytm…
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Opening checkout…
                     </>
                   ) : price === 0 ? (
                     "Included free"
