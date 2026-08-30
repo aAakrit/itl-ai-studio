@@ -15,6 +15,7 @@ import { SubscriptionSection } from "./SubscriptionSection";
 import { PaymentSection } from "./PaymentSection";
 import { AiUsagePanel } from "./AiUsagePanel";
 import { ActivitySection } from "./ActivitySection";
+import { ConversationsSection } from "./ConversationsSection";
 import {
   EMPTY,
   accountStatusClass,
@@ -96,7 +97,7 @@ export function UserDetailDialog({
                   <Field label="Email" value={user.email} />
                   <Field label="Mobile" value={user.mobile} />
                   <Field label="Telephone" value={user.telephone} />
-                  <Field label="Fax" value={user.fax} />
+                  <Field label="GSTIN" value={user.gstin} />
                   <Field label="Firm" value={user.firm} />
                   <Field label="Role" value={role} />
                   <Field label="Account status" value={user.status} />
@@ -138,9 +139,7 @@ export function UserDetailDialog({
               </TabsContent>
 
               <TabsContent value="conversations" className="m-0">
-                <p className="rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-                  Admin access to AI conversation history isn't available from the backend yet.
-                </p>
+                <ConversationsSection userId={user.id} />
               </TabsContent>
 
               <TabsContent value="activity" className="m-0">

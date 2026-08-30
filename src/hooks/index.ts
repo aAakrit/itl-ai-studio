@@ -6,7 +6,7 @@ import { pricingService } from "@/services/pricing.service";
 import { faqService } from "@/services/faq.service";
 import { contactService } from "@/services/contact.service";
 import { workspaceService, chatService } from "@/services/workspace.service";
-import { adminService, analyticsService, paymentService, subscriptionService, userService } from "@/services/admin.service";
+import { adminService, adminNotificationService, analyticsService, auditLogService, conversationService, paymentService, subscriptionService, userService } from "@/services/admin.service";
 import { checkoutService } from "@/services/checkout.service";
 import { legalService } from "@/services/legal.service";
 import { cmsContentService, cmsService, navigationService } from "@/services/cms.service";
@@ -204,6 +204,78 @@ export const useRecheckPayment = () => {
 };
 
 export const useAdminNav = () => useQuery({ queryKey: ["admin", "nav"], queryFn: () => adminService.getNav(), staleTime: Infinity });
+
+/* ---------- Admin notifications ---------- */
+
+export const useAdminNotifications = (params: AdminNotificationListParams) =>
+  useQuery({
+    queryKey: ["admin", "notifications", params],
+    queryFn: () => adminNotificationService.list(params),
+    placeholderData: keepPreviousData,
+    refetchInterval: 60_000,
+  });
+
+export const useMarkNotificationRead = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminNotificationService.markRead(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+};
+
+export const useMarkAllNotificationsRead = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => adminNotificationService.markAllRead(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+};
+
+/* ---------- Admin conversations (Logs) ---------- */
+
+export const useAdminConversations = (params: AdminConversationListParams) =>
+  useQuery({
+    queryKey: ["admin", "conversations", params],
+    queryFn: () => conversationService.list(params),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAdminConversation = (id: number | null) =>
+  useQuery({
+    queryKey: ["admin", "conversations", "detail", id],
+    queryFn: () => conversationService.get(id!),
+    enabled: id != null,
+  });
+
+export const useAdminUserConversations = (userId: number | null, params: { page?: number; limit?: number }) =>
+  useQuery({
+    queryKey: ["admin", "users", userId, "conversations", params],
+    queryFn: () => conversationService.listForUser(userId!, params),
+    enabled: userId != null,
+  });
+
+export const useAdminUserConversation = (userId: number | null, conversationId: number | null) =>
+  useQuery({
+    queryKey: ["admin", "users", userId, "conversations", "detail", conversationId],
+    queryFn: () => conversationService.getForUser(userId!, conversationId!),
+    enabled: userId != null && conversationId != null,
+  });
+
+/* ---------- Admin audit logs ---------- */
+
+export const useAdminAuditLogs = (params: AdminAuditLogListParams) =>
+  useQuery({
+    queryKey: ["admin", "audit-logs", params],
+    queryFn: () => auditLogService.list(params),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAdminAuditActions = () =>
+  useQuery({
+    queryKey: ["admin", "audit-logs", "actions"],
+    queryFn: () => auditLogService.listActions(),
+    staleTime: 5 * 60_000,
+  });
 export const useAnalytics = () => useQuery({ queryKey: ["analytics"], queryFn: () => analyticsService.getOverview(), staleTime: ADMIN_STALE });
 
 export const useAiAnalytics = (params?: { start_date?: string; end_date?: string }) =>
@@ -275,6 +347,9 @@ export { useCommandStore } from "@/store/commandStore";
 import { useFeatureFlagStore } from "@/store/featureFlagStore";
 import { usePermissionStore } from "@/store/permissionStore";
 import type {
+  AdminAuditLogListParams,
+  AdminConversationListParams,
+  AdminNotificationListParams,
   CashPaymentCreate,
   PaymentInitiateRequest,
   PaymentListParams,

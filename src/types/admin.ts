@@ -270,6 +270,100 @@ export interface CashPaymentCreate {
 }
 
 /* ------------------------------------------------------------------ */
+/* Admin notifications                                                 */
+/* ------------------------------------------------------------------ */
+
+export type AdminNotificationType = "user_pending_approval" | "payment_completed" | "subscription_expiring";
+
+export interface AdminNotification {
+  id: number;
+  type: AdminNotificationType;
+  title: string;
+  body?: string | null;
+  target_type?: "user" | "payment" | "subscription" | null;
+  target_id?: number | null;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface AdminNotificationListParams {
+  page?: number;
+  limit?: number;
+  unread_only?: boolean;
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin > Logs — AI conversations across all users                    */
+/* ------------------------------------------------------------------ */
+
+export interface AdminConversationSummary {
+  id: number;
+  title: string;
+  provider: string;
+  tool: string;
+  module: string;
+  status: string;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+  last_message_at?: string | null;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+}
+
+export interface AdminConversationListParams {
+  page?: number;
+  limit?: number;
+  user_id?: number;
+  module?: string;
+  tool?: string;
+  search?: string;
+}
+
+export interface AdminConversationMessage {
+  id: number;
+  role: string;
+  content: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+export interface AdminConversationDetail extends AdminConversationSummary {
+  messages: AdminConversationMessage[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin > Audit logs                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface AdminAuditLogEntry {
+  id: number;
+  actor_id: number | null;
+  actor_name: string | null;
+  actor_email: string | null;
+  action: string;
+  target_type: string;
+  target_id: number;
+  previous_value?: Record<string, unknown> | null;
+  new_value?: Record<string, unknown> | null;
+  reason?: string | null;
+  created_at: string;
+}
+
+export interface AdminAuditLogListParams {
+  page?: number;
+  limit?: number;
+  actor_id?: number;
+  action?: string;
+  target_type?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+/* ------------------------------------------------------------------ */
 /* User-facing checkout — POST /payments/initiate                      */
 /* ------------------------------------------------------------------ */
 

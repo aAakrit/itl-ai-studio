@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Logo } from "@/components/common/Logo";
 import { Icon } from "@/components/common/Icon";
 import { cn } from "@/lib/utils";
-import { useAdminNav } from "@/hooks";
+import { useAdminNav, useAdminNotifications } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Bell, Search } from "lucide-react";
 import { useCommandStore } from "@/store/commandStore";
@@ -17,7 +17,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const openPalette = useCommandStore((s) => s.setOpen);
   const openDrawer = useNotificationStore((s) => s.setDrawerOpen);
-  const unread = useNotificationStore((s) => s.items.filter((n) => !n.read).length);
+  const { data: notificationsData } = useAdminNotifications({ page: 1, limit: 1 });
+  const unread = notificationsData?.unread_count ?? 0;
 
   return (
     <div className="grid min-h-screen grid-cols-[260px_1fr] bg-background">

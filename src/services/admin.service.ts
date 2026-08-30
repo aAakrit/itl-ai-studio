@@ -1,6 +1,13 @@
 /* eslint-disable prettier/prettier */
 import type {
   AdminAuditEvent,
+  AdminAuditLogEntry,
+  AdminAuditLogListParams,
+  AdminConversationDetail,
+  AdminConversationListParams,
+  AdminConversationSummary,
+  AdminNotification,
+  AdminNotificationListParams,
   AdminPayment,
   AdminUser,
   AdminUserDetail,
@@ -183,4 +190,49 @@ export const userService = {
 export const settingsService = {
   get: () => mockResponse({ notifications: true, weeklyDigest: false, betaFeatures: true }),
   update: (patch: Record<string, unknown>) => mockResponse({ ok: true, patch }),
+};
+
+export const adminNotificationService = {
+  async list(params: AdminNotificationListParams): Promise<Paginated<AdminNotification> & { unread_count: number }> {
+    const { data } = await api.get(endpoints.adminNotifications.list, { params: clean(params as Record<string, unknown>) });
+    return data;
+  },
+  async markRead(id: number): Promise<AdminNotification> {
+    const { data } = await api.post(endpoints.adminNotifications.markRead(id));
+    return data;
+  },
+  async markAllRead(): Promise<{ success: boolean; updated: number }> {
+    const { data } = await api.post(endpoints.adminNotifications.markAllRead);
+    return data;
+  },
+};
+
+export const conversationService = {
+  async list(params: AdminConversationListParams): Promise<Paginated<AdminConversationSummary>> {
+    const { data } = await api.get(endpoints.adminConversations.list, { params: clean(params as Record<string, unknown>) });
+    return data;
+  },
+  async get(id: number): Promise<AdminConversationDetail> {
+    const { data } = await api.get(endpoints.adminConversations.detail(id));
+    return data;
+  },
+  async listForUser(userId: number, params: { page?: number; limit?: number }): Promise<Paginated<AdminConversationSummary>> {
+    const { data } = await api.get(endpoints.adminConversations.forUser(userId), { params: clean(params) });
+    return data;
+  },
+  async getForUser(userId: number, conversationId: number): Promise<AdminConversationDetail> {
+    const { data } = await api.get(endpoints.adminConversations.forUserDetail(userId, conversationId));
+    return data;
+  },
+};
+
+export const auditLogService = {
+  async list(params: AdminAuditLogListParams): Promise<Paginated<AdminAuditLogEntry>> {
+    const { data } = await api.get(endpoints.adminAuditLogs.list, { params: clean(params as Record<string, unknown>) });
+    return data;
+  },
+  async listActions(): Promise<{ actions: string[] }> {
+    const { data } = await api.get(endpoints.adminAuditLogs.actions);
+    return data;
+  },
 };

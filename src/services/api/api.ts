@@ -131,6 +131,22 @@ export const endpoints = {
     status: (orderId: string) => `/payments/${orderId}/status`,
     recheck: (orderId: string) => `/payments/${orderId}/recheck`,
   },
+  adminNotifications: {
+    list: "/admin/notifications",
+    markRead: (id: number) => `/admin/notifications/${id}/read`,
+    markAllRead: "/admin/notifications/read-all",
+  },
+  adminConversations: {
+    list: "/admin/conversations",
+    detail: (id: number) => `/admin/conversations/${id}`,
+    forUser: (userId: number) => `/admin/users/${userId}/conversations`,
+    forUserDetail: (userId: number, conversationId: number) =>
+      `/admin/users/${userId}/conversations/${conversationId}`,
+  },
+  adminAuditLogs: {
+    list: "/admin/audit-logs",
+    actions: "/admin/audit-logs/actions",
+  },
 
   profile: {
     me: "/profile/me",
