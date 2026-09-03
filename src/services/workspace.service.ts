@@ -658,6 +658,14 @@ export const chatService = {
     await api.delete(endpoints.ai.conversation(id));
   },
 
+  renameThread: async (id: string, title: string): Promise<void> => {
+    await api.patch(endpoints.ai.renameConversation(id), { title });
+  },
+
+  archiveThread: async (id: string, archived: boolean): Promise<void> => {
+    await api.patch(endpoints.ai.archiveConversation(id), { archived });
+  },
+
   sendMessage: async (
     threadId: string | null,
     prompt: string,

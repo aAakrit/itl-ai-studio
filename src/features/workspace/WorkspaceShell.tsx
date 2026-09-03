@@ -1,16 +1,34 @@
 /* eslint-disable prettier/prettier */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { PanelLeftOpen, PanelRightOpen, Share2, MoreHorizontal, Sparkles } from "lucide-react";
+import { PanelLeftOpen, PanelRightOpen, Share2, MoreHorizontal, Sparkles, Copy, Download, Pencil, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Icon } from "@/components/common/Icon";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { ContextPanel } from "./ContextPanel";
 import { PromptComposer } from "./PromptComposer";
 import { ChatMessageBubble, TypingIndicator } from "./ChatMessage";
 import { useSidebarStore, useWorkspaceStore, useChatStore } from "@/store";
-import { useWorkspaceModules } from "@/hooks";
+import { useArchiveThread, useDeleteThread, useMyWorkspaceSettings, useRenameThread, useWorkspaceModules } from "@/hooks";
 import { chatService, isFileTool } from "@/services/workspace.service";
 import { cn, generateId } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
@@ -57,6 +75,14 @@ export function WorkspaceShell() {
   const createThread = useChatStore((s) => s.createThread);
   const deleteThread = useChatStore((s) => s.deleteThread);
   const upsertThread = useChatStore((s) => s.upsertThread);
+
+  const { data: workspaceSettings } = useMyWorkspaceSettings();
+  const renameThreadMutation = useRenameThread();
+  const archiveThreadMutation = useArchiveThread();
+  const deleteThreadMutation = useDeleteThread();
+  const [renamingActive, setRenamingActive] = useState(false);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [confirmDeleteActive, setConfirmDeleteActive] = useState(false);
 
   const activeModule = modules?.find((m) => m.id === activeModuleId);
   const activeTool = activeModule?.tools.find((t) => t.id === activeToolId);
@@ -417,6 +443,93 @@ export function WorkspaceShell() {
     [activeModuleId, activeToolId, addMessage, upsertThread],
   );
 
+  const buildTranscript = useCallback(() => {
+    if (!thread) return "";
+    const lines = thread.messages.map((m) => `${m.role === "user" ? "You" : "Assistant"}: ${m.content}`);
+    return `${thread.title}\n\n${lines.join("\n\n")}`;
+  }, [thread]);
+
+  const handleCopyTranscript = useCallback(async () => {
+    const text = buildTranscript();
+    if (!text) {
+      toast.error("Nothing to copy yet.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Conversation copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy — your browser blocked clipboard access.");
+    }
+  }, [buildTranscript]);
+
+  const handleDownloadTranscript = useCallback(() => {
+    const text = buildTranscript();
+    if (!text || !thread) {
+      toast.error("Nothing to download yet.");
+      return;
+    }
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${thread.title.replace(/[^\w\- ]+/g, "").trim() || "conversation"}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [buildTranscript, thread]);
+
+  const handleRenameActiveStart = () => {
+    if (!thread) return;
+    setRenameDraft(thread.title);
+    setRenamingActive(true);
+  };
+
+  const handleRenameActiveCommit = () => {
+    if (!thread) return;
+    const title = renameDraft.trim();
+    setRenamingActive(false);
+    if (!title || title === thread.title) return;
+    renameThreadMutation.mutate(
+      { id: thread.id, title },
+      {
+        onSuccess: () => {
+          upsertThread({ id: thread.id, title, updatedAt: new Date().toISOString() });
+          toast.success("Renamed");
+        },
+        onError: () => toast.error("Couldn't rename — please try again."),
+      },
+    );
+  };
+
+  const handleArchiveActive = () => {
+    if (!thread) return;
+    archiveThreadMutation.mutate(
+      { id: thread.id, archived: true },
+      {
+        onSuccess: () => {
+          toast.success("Archived");
+          setThread(null);
+        },
+        onError: () => toast.error("Couldn't archive — please try again."),
+      },
+    );
+  };
+
+  const handleDeleteActive = () => {
+    if (!thread) return;
+    deleteThreadMutation.mutate(thread.id, {
+      onSuccess: () => {
+        deleteThread(thread.id);
+        toast.success("Conversation deleted");
+        setThread(null);
+      },
+      onError: () => toast.error("Couldn't delete — please try again."),
+    });
+    setConfirmDeleteActive(false);
+  };
+
   return (
     <div
       className={cn(
@@ -477,12 +590,42 @@ export function WorkspaceShell() {
                 </button>
               ))}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Share2 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!thread} title="Share">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleCopyTranscript}>
+                  <Copy className="mr-2 h-3.5 w-3.5" /> Copy conversation
+                </DropdownMenuItem>
+                {workspaceSettings?.allow_conversation_export !== false && (
+                  <DropdownMenuItem onClick={handleDownloadTranscript}>
+                    <Download className="mr-2 h-3.5 w-3.5" /> Download as .txt
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!thread} title="More">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleRenameActiveStart}>
+                  <Pencil className="mr-2 h-3.5 w-3.5" /> Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleArchiveActive}>
+                  <Archive className="mr-2 h-3.5 w-3.5" /> Archive
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteActive(true)}>
+                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {!rightOpen && (
               <Button variant="ghost" size="icon" onClick={toggleRight} className="h-8 w-8">
                 <PanelRightOpen className="h-4 w-4" />
@@ -490,6 +633,43 @@ export function WorkspaceShell() {
             )}
           </div>
         </header>
+
+        {renamingActive && thread && (
+          <div className="flex items-center gap-2 border-b border-border/60 bg-secondary/30 px-4 py-2">
+            <input
+              autoFocus
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameActiveCommit();
+                if (e.key === "Escape") setRenamingActive(false);
+              }}
+              className="h-8 flex-1 rounded-md border border-border/60 bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+            />
+            <Button size="sm" onClick={handleRenameActiveCommit}>Save</Button>
+            <Button size="sm" variant="ghost" onClick={() => setRenamingActive(false)}>Cancel</Button>
+          </div>
+        )}
+
+        <AlertDialog open={confirmDeleteActive} onOpenChange={setConfirmDeleteActive}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this conversation?</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{thread?.title}" will be permanently deleted. This can't be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteActive}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Messages — the only independently scrolling region in this column */}
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">

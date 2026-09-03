@@ -10,18 +10,43 @@ import {
   Settings,
   LogOut,
   ChevronsLeft,
+  Pencil,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
 import { Icon } from "@/components/common/Icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useChatFolders, useChatThreads, useWorkspaceModules } from "@/hooks";
+import { useArchiveThread, useChatFolders, useChatThreads, useDeleteThread, useRenameThread, useWorkspaceModules } from "@/hooks";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useWorkspaceStore, useSidebarStore, useChatStore } from "@/store";
 import { authService } from "@/services/auth.service";
+import { WorkspaceSettingsDialog } from "./WorkspaceSettingsDialog";
 import type { ChatThread } from "@/types";
 
 export function WorkspaceSidebar() {
@@ -39,6 +64,8 @@ export function WorkspaceSidebar() {
   const setThread = useWorkspaceStore((s) => s.setThread);
   const toggleLeft = useSidebarStore((s) => s.toggleLeft);
   const { data: threadList, isSuccess: threadsLoaded } = useChatThreads(activeModuleId, activeToolId);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ChatThread | null>(null);
 
   // Refetches and re-syncs every time the active Module+Tool workspace changes —
   // each combination is an independent namespace with its own history.
@@ -50,6 +77,33 @@ export function WorkspaceSidebar() {
   }, [threadsLoaded, threadList, activeModuleId, activeToolId]);
 
   const handleNewChat = () => setThread(null);
+
+  const deleteThread = useDeleteThread();
+  const renameThread = useRenameThread();
+  const archiveThread = useArchiveThread();
+
+  const handleRename = (thread: ChatThread, title: string) => {
+    renameThread.mutate(
+      { id: thread.id, title },
+      {
+        onSuccess: () => toast.success("Renamed"),
+        onError: () => toast.error("Couldn't rename — please try again."),
+      },
+    );
+  };
+
+  const handleArchive = (thread: ChatThread) => {
+    archiveThread.mutate(
+      { id: thread.id, archived: true },
+      {
+        onSuccess: () => {
+          toast.success("Archived");
+          if (activeThreadId === thread.id) setThread(null);
+        },
+        onError: () => toast.error("Couldn't archive — please try again."),
+      },
+    );
+  };
 
   const handleLogout = async () => {
     try {
@@ -145,7 +199,15 @@ export function WorkspaceSidebar() {
 
       <nav className="scrollbar-thin mt-3 min-h-0 flex-1 space-y-4 overflow-y-auto px-2 pb-2">
         {pinned.length > 0 && (
-          <ThreadGroup title="Pinned" items={pinned} activeId={activeThreadId} onSelect={setThread} />
+          <ThreadGroup
+            title="Pinned"
+            items={pinned}
+            activeId={activeThreadId}
+            onSelect={setThread}
+            onRename={handleRename}
+            onArchive={handleArchive}
+            onDelete={setDeleteTarget}
+          />
         )}
         {folders && folders.length > 0 && (
           <div>
@@ -167,7 +229,15 @@ export function WorkspaceSidebar() {
             </ul>
           </div>
         )}
-        <ThreadGroup title="Recent" items={recent} activeId={activeThreadId} onSelect={setThread} />
+        <ThreadGroup
+          title="Recent"
+          items={recent}
+          activeId={activeThreadId}
+          onSelect={setThread}
+          onRename={handleRename}
+          onArchive={handleArchive}
+          onDelete={setDeleteTarget}
+        />
         {filtered.length === 0 && (
           <p className="px-2 text-[12px] text-muted-foreground">
             {query ? "No chats match your search." : "No conversations yet — start one below."}
@@ -186,7 +256,7 @@ export function WorkspaceSidebar() {
               {currentUser?.firm ? currentUser.firm : currentUser?.plan ? `${currentUser.plan} plan` : currentUser?.email}
             </p>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsOpen(true)} aria-label="Workspace settings">
             <Settings className="h-3.5 w-3.5" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout} aria-label="Log out">
@@ -194,6 +264,38 @@ export function WorkspaceSidebar() {
           </Button>
         </div>
       </div>
+
+      <WorkspaceSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deleteTarget?.title}" will be permanently deleted. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!deleteTarget) return;
+                deleteThread.mutate(deleteTarget.id, {
+                  onSuccess: () => {
+                    toast.success("Conversation deleted");
+                    if (activeThreadId === deleteTarget.id) setThread(null);
+                  },
+                  onError: () => toast.error("Couldn't delete — please try again."),
+                });
+                setDeleteTarget(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }
@@ -203,48 +305,116 @@ function ThreadGroup({
   items,
   activeId,
   onSelect,
+  onRename,
+  onArchive,
+  onDelete,
 }: {
   title: string;
   items: ChatThread[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  onRename: (thread: ChatThread, title: string) => void;
+  onArchive: (thread: ChatThread) => void;
+  onDelete: (thread: ChatThread) => void;
 }) {
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+
   if (items.length === 0) return null;
+
+  const startRename = (t: ChatThread) => {
+    setRenamingId(t.id);
+    setDraftTitle(t.title);
+  };
+
+  const commitRename = (t: ChatThread) => {
+    const trimmed = draftTitle.trim();
+    if (trimmed && trimmed !== t.title) onRename(t, trimmed);
+    setRenamingId(null);
+  };
+
   return (
     <div>
       <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {title}
       </p>
       <ul className="space-y-0.5">
-        {items.map((t) => (
-          <li key={t.id}>
-            <button
-              onClick={() => onSelect(t.id)}
-              className={cn(
-                "group flex w-full items-center justify-between gap-1 rounded-lg px-2 py-2 text-left transition-colors",
-                activeId === t.id
-                  ? "bg-primary/8 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+        {items.map((t) => {
+          const isRenaming = renamingId === t.id;
+          return (
+            <li key={t.id}>
+              {isRenaming ? (
+                <div className="flex items-center gap-1 rounded-lg px-2 py-1.5">
+                  <Input
+                    autoFocus
+                    value={draftTitle}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename(t);
+                      if (e.key === "Escape") setRenamingId(null);
+                    }}
+                    className="h-7 flex-1 text-[13px]"
+                  />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => commitRename(t)}>
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setRenamingId(null)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => onSelect(t.id)}
+                  className={cn(
+                    "group flex w-full items-center justify-between gap-1 rounded-lg px-2 py-2 text-left transition-colors",
+                    activeId === t.id
+                      ? "bg-primary/8 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium">
+                      {/* Backend title falls back to first prompt client-side until the
+                          server assigns a real one, so this is never stuck on "New Chat". */}
+                      {t.title}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {dayjs(t.updatedAt).format("MMM D, HH:mm")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    {t.pinned && <Pin className="h-3 w-3" />}
+                    {t.favorite && <Star className="h-3 w-3" />}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => e.stopPropagation()}
+                          className="grid h-5 w-5 place-items-center rounded hover:bg-secondary"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => startRename(t)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onArchive(t)}>
+                          <Archive className="mr-2 h-3.5 w-3.5" /> Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => onDelete(t)}>
+                          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </button>
               )}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">
-                  {/* Backend title falls back to first prompt client-side until the
-                      server assigns a real one, so this is never stuck on "New Chat". */}
-                  {t.title}
-                </p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  {dayjs(t.updatedAt).format("MMM D, HH:mm")}
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                {t.pinned && <Pin className="h-3 w-3" />}
-                {t.favorite && <Star className="h-3 w-3" />}
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </div>
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

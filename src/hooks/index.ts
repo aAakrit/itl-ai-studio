@@ -37,6 +37,54 @@ export const useChatThreads = (moduleId: string, toolId: string) =>
 export const useChatFolders = () =>
   useQuery({ queryKey: ["chat", "folders"], queryFn: () => workspaceService.getFolders() });
 
+export const useDeleteThread = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => chatService.deleteThread(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chat", "threads"] }),
+  });
+};
+
+export const useRenameThread = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => chatService.renameThread(id, title),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chat", "threads"] }),
+  });
+};
+
+export const useArchiveThread = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, archived }: { id: string; archived: boolean }) => chatService.archiveThread(id, archived),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chat", "threads"] }),
+  });
+};
+
+/* ---------- Workspace settings ---------- */
+
+export const useWorkspaceSettingsAdmin = () =>
+  useQuery({ queryKey: ["admin", "workspace-settings"], queryFn: () => workspaceSettingsService.getAdmin() });
+
+export const useUpdateWorkspaceSettingsAdmin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: WorkspaceSettingsUpdate) => workspaceSettingsService.updateAdmin(patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "workspace-settings"] }),
+  });
+};
+
+export const useMyWorkspaceSettings = () =>
+  useQuery({ queryKey: ["workspace", "settings"], queryFn: () => workspaceSettingsService.getMine() });
+
+export const useUpdateMyWorkspaceSettings = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: UserPreferencesUpdate) => workspaceSettingsService.updateMine(patch),
+    onSuccess: (data) => queryClient.setQueryData(["workspace", "settings"], data),
+  });
+};
+
 const ADMIN_STALE = 5 * 60_000;
 export const useAdminMetrics = () => useQuery({ queryKey: ["admin", "metrics"], queryFn: () => adminService.getMetrics(), staleTime: ADMIN_STALE });
 export const useAdminUsers = (params: UserListParams,) => useQuery({ queryKey: ["admin", "users", params], queryFn: () => adminService.getUsers(params), staleTime: ADMIN_STALE, placeholderData: keepPreviousData,});
@@ -358,7 +406,10 @@ import type {
   SubscriptionListParams,
   SubscriptionUpdate,
   UserListParams,
+  UserPreferencesUpdate,
+  WorkspaceSettingsUpdate,
 } from "@/types/admin";
+import { workspaceSettingsService } from "@/services/workspace-settings.service";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));

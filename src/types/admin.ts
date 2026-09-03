@@ -364,6 +364,44 @@ export interface AdminAuditLogListParams {
 }
 
 /* ------------------------------------------------------------------ */
+/* Workspace settings — admin-configured, applied to every workspace   */
+/* ------------------------------------------------------------------ */
+
+export interface WorkspaceSettings {
+  allow_conversation_export: boolean;
+  show_citations_by_default: boolean;
+  default_module: string;
+  announcement_banner?: string | null;
+  support_email?: string | null;
+  updated_at?: string;
+}
+
+export interface WorkspaceSettingsUpdate {
+  allow_conversation_export?: boolean;
+  show_citations_by_default?: boolean;
+  default_module?: string;
+  announcement_banner?: string | null;
+  support_email?: string | null;
+}
+
+/* User-facing effective settings = admin defaults merged with their own preferences. */
+export interface EffectiveWorkspaceSettings {
+  theme: "light" | "dark" | "system";
+  compact_mode: boolean;
+  show_citations: boolean;
+  allow_conversation_export: boolean;
+  default_module: string;
+  announcement_banner?: string | null;
+  support_email?: string | null;
+}
+
+export interface UserPreferencesUpdate {
+  theme?: "light" | "dark" | "system";
+  compact_mode?: boolean;
+  show_citations?: boolean;
+}
+
+/* ------------------------------------------------------------------ */
 /* User-facing checkout — POST /payments/initiate                      */
 /* ------------------------------------------------------------------ */
 

@@ -147,6 +147,12 @@ export const endpoints = {
     list: "/admin/audit-logs",
     actions: "/admin/audit-logs/actions",
   },
+  adminWorkspaceSettings: {
+    get: "/admin/workspace-settings",
+  },
+  workspaceSettings: {
+    get: "/workspace/settings",
+  },
 
   profile: {
     me: "/profile/me",
@@ -256,6 +262,8 @@ export const endpoints = {
     models: "/ai/models",
     conversations: "/ai/conversations",
     conversation: (id: string) => `/ai/conversations/${id}`,
+    renameConversation: (id: string) => `/ai/conversations/${id}/rename`,
+    archiveConversation: (id: string) => `/ai/conversations/${id}/archive`,
     clarify: "/ai/clarify",
     messageFeedback: (id: string) => `/ai/messages/${id}/feedback`,
     messageRefine: (id: string) => `/ai/messages/${id}/refine`,
