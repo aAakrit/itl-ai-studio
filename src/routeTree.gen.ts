@@ -28,10 +28,12 @@ import { Route as FaqRouteImport } from './routes/faq'
 import { Route as DisclaimerRouteImport } from './routes/disclaimer'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CancellationRouteImport } from './routes/cancellation'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as BillingReturnRouteImport } from './routes/billing.return'
 import { Route as AdminWorkspaceSettingsRouteImport } from './routes/admin.workspace-settings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminThemeRouteImport } from './routes/admin.theme'
@@ -151,6 +153,11 @@ const CancellationRoute = CancellationRouteImport.update({
   path: '/cancellation',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -170,6 +177,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const BillingReturnRoute = BillingReturnRouteImport.update({
+  id: '/return',
+  path: '/return',
+  getParentRoute: () => BillingRoute,
 } as any)
 const AdminWorkspaceSettingsRoute = AdminWorkspaceSettingsRouteImport.update({
   id: '/workspace-settings',
@@ -291,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/billing': typeof BillingRouteWithChildren
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/disclaimer': typeof DisclaimerRoute
@@ -333,11 +346,13 @@ export interface FileRoutesByFullPath {
   '/admin/theme': typeof AdminThemeRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/workspace-settings': typeof AdminWorkspaceSettingsRoute
+  '/billing/return': typeof BillingReturnRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/billing': typeof BillingRouteWithChildren
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/disclaimer': typeof DisclaimerRoute
@@ -380,6 +395,7 @@ export interface FileRoutesByTo {
   '/admin/theme': typeof AdminThemeRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/workspace-settings': typeof AdminWorkspaceSettingsRoute
+  '/billing/return': typeof BillingReturnRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -387,6 +403,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/billing': typeof BillingRouteWithChildren
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/disclaimer': typeof DisclaimerRoute
@@ -429,6 +446,7 @@ export interface FileRoutesById {
   '/admin/theme': typeof AdminThemeRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/workspace-settings': typeof AdminWorkspaceSettingsRoute
+  '/billing/return': typeof BillingReturnRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -437,6 +455,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/billing'
     | '/cancellation'
     | '/contact'
     | '/disclaimer'
@@ -479,11 +498,13 @@ export interface FileRouteTypes {
     | '/admin/theme'
     | '/admin/users'
     | '/admin/workspace-settings'
+    | '/billing/return'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/billing'
     | '/cancellation'
     | '/contact'
     | '/disclaimer'
@@ -526,12 +547,14 @@ export interface FileRouteTypes {
     | '/admin/theme'
     | '/admin/users'
     | '/admin/workspace-settings'
+    | '/billing/return'
     | '/admin'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/admin'
+    | '/billing'
     | '/cancellation'
     | '/contact'
     | '/disclaimer'
@@ -574,6 +597,7 @@ export interface FileRouteTypes {
     | '/admin/theme'
     | '/admin/users'
     | '/admin/workspace-settings'
+    | '/billing/return'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -581,6 +605,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
+  BillingRoute: typeof BillingRouteWithChildren
   CancellationRoute: typeof CancellationRoute
   ContactRoute: typeof ContactRoute
   DisclaimerRoute: typeof DisclaimerRoute
@@ -737,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CancellationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -764,6 +796,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/billing/return': {
+      id: '/billing/return'
+      path: '/return'
+      fullPath: '/billing/return'
+      preLoaderRoute: typeof BillingReturnRouteImport
+      parentRoute: typeof BillingRoute
     }
     '/admin/workspace-settings': {
       id: '/admin/workspace-settings'
@@ -985,10 +1024,22 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface BillingRouteChildren {
+  BillingReturnRoute: typeof BillingReturnRoute
+}
+
+const BillingRouteChildren: BillingRouteChildren = {
+  BillingReturnRoute: BillingReturnRoute,
+}
+
+const BillingRouteWithChildren =
+  BillingRoute._addFileChildren(BillingRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
+  BillingRoute: BillingRouteWithChildren,
   CancellationRoute: CancellationRoute,
   ContactRoute: ContactRoute,
   DisclaimerRoute: DisclaimerRoute,
