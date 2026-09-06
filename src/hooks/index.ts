@@ -7,6 +7,7 @@ import { faqService } from "@/services/faq.service";
 import { contactService } from "@/services/contact.service";
 import { workspaceService, chatService } from "@/services/workspace.service";
 import { adminService, adminNotificationService, analyticsService, auditLogService, conversationService, paymentService, subscriptionService, userService } from "@/services/admin.service";
+import { workspaceSettingsService } from "@/services/workspace-settings.service";
 import { checkoutService } from "@/services/checkout.service";
 import { legalService } from "@/services/legal.service";
 import { cmsContentService, cmsService, navigationService } from "@/services/cms.service";
@@ -226,6 +227,12 @@ export const useRecordCashPayment = () => {
   });
 };
 
+export const useDownloadReceipt = () =>
+  useMutation({
+    mutationFn: ({ id, format }: { id: number; format?: "pdf" | "docx" }) =>
+      paymentService.downloadReceipt(id, format ?? "pdf"),
+  });
+
 /* ---------- User-facing checkout ---------- */
 
 export const useInitiatePayment = () =>
@@ -409,7 +416,6 @@ import type {
   UserPreferencesUpdate,
   WorkspaceSettingsUpdate,
 } from "@/types/admin";
-import { workspaceSettingsService } from "@/services/workspace-settings.service";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));

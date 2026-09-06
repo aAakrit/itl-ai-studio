@@ -33,6 +33,40 @@ async function refreshAuthToken(): Promise<string | null> {
   return null;
 }
 
+// Routes that don't require auth — a 401 from an API call made while on
+// one of these can never mean "your session just expired" (there's no
+// session to expire), so the global redirect below must never fire here.
+// This is the actual fix for a real bug: an anonymous visitor with a
+// stale/invalid token left over in localStorage from a previous session
+// would trigger AuthProvider's `useMe(!!token)` on ANY page — including
+// mid-registration — get a 401, and get hard-redirected to /login,
+// wiping whatever they'd typed into the form.
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/otp",
+  "/pricing",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/refund",
+  "/cancellation",
+  "/disclaimer",
+  "/intellectual-property",
+  "/faq",
+  "/welcome",
+];
+
+function isOnPublicPage(): boolean {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return path === "/" || PUBLIC_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 function createApi(config: Partial<ApiEnv> = {}): AxiosInstance {
   const instance = axios.create({
     baseURL: config.baseURL ?? env.baseURL,
@@ -51,7 +85,15 @@ function createApi(config: Partial<ApiEnv> = {}): AxiosInstance {
     async (error: AxiosError) => {
       const original = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-      if (error.response?.status === 401 && original && !original._retry) {
+      // A request that never carried a token can't have had "its session
+      // expire" — that 401 means something else (a public endpoint
+      // legitimately denying access, a misconfigured route, etc.) and
+      // must not trigger a global logout+redirect.
+      const requestHadToken = Boolean(
+        (original?.headers as Record<string, unknown> | undefined)?.Authorization,
+      );
+
+      if (error.response?.status === 401 && original && !original._retry && requestHadToken) {
         original._retry = true;
         const fresh = await refreshAuthToken();
         if (fresh && original.headers) {
@@ -62,7 +104,11 @@ function createApi(config: Partial<ApiEnv> = {}): AxiosInstance {
         useAuthStore.getState().clear();
         useChatStore.getState().reset();
         useWorkspaceStore.getState().reset();
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+
+        // Never redirect away from a public page — there's nothing to
+        // protect there, and doing so can interrupt something the person
+        // is actively filling out (registration, password reset, etc.).
+        if (typeof window !== "undefined" && !isOnPublicPage()) {
           window.location.assign("/login");
         }
       }
@@ -125,6 +171,7 @@ export const endpoints = {
       list: "/admin/payments",
       detail: (id: number) => `/admin/payments/${id}`,
       recordCash: "/admin/payments/cash",
+      receipt: (id: number, format: "pdf" | "docx") => `/admin/payments/${id}/receipt?format=${format}`,
   },
   checkout: {
     initiate: "/payments/initiate",

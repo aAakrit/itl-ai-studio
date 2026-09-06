@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { BookOpen, CheckCircle2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useLegal } from "@/hooks";
+
 import { cn } from "@/lib/utils";
+import { useLegal } from "@/hooks";
 
 /**
  * Shows the Terms & Conditions in a scrollable dialog. `onAccept` only
  * fires once the person has scrolled all the way to the bottom — accepting
- * before that isn't possible, the button stays disabled.
+ * before that isn't possible, the button stays disabled. A progress bar
+ * and explicit instructions make that requirement obvious up front rather
+ * than something the person has to discover by trying to click a disabled
+ * button.
  */
 export function TermsGateDialog({
   open,
@@ -29,15 +33,17 @@ export function TermsGateDialog({
   onAccept: () => void;
 }) {
   const { data, isLoading } = useLegal("terms");
-  const [reachedEnd, setReachedEnd] = useState(false);
+  const [progress, setProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reachedEnd = progress >= 100;
 
   const sections = (data?.sections ?? []) as { heading: string; body: string }[];
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
-    if (atBottom) setReachedEnd(true);
+    const scrollable = el.scrollHeight - el.clientHeight;
+    const pct = scrollable <= 0 ? 100 : Math.min(100, Math.round((el.scrollTop / scrollable) * 100));
+    setProgress((prev) => Math.max(prev, pct)); // never regress if they scroll back up
   };
 
   return (
@@ -45,12 +51,25 @@ export function TermsGateDialog({
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{(data as any)?.title ?? "Terms & Conditions"}</DialogTitle>
-          <DialogDescription>
-            {reachedEnd
-              ? "You've read the full document — you can close this and accept."
-              : "Scroll to the end to unlock acceptance."}
+          <DialogDescription asChild>
+            <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-secondary/30 p-2.5 text-xs">
+              <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>
+                Please scroll through and read the entire document below. The <strong>"I have read and
+                accept"</strong> button unlocks automatically once you reach the end — no separate confirmation
+                needed.
+              </span>
+            </div>
           </DialogDescription>
         </DialogHeader>
+
+        {/* Progress bar — continuous feedback instead of a binary "keep scrolling" message */}
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+          <div
+            className={cn("h-full rounded-full transition-all duration-200", reachedEnd ? "bg-success" : "bg-primary")}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
 
         <div
           ref={scrollRef}
@@ -94,7 +113,7 @@ export function TermsGateDialog({
             )}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
-            {reachedEnd ? "Fully read" : "Keep scrolling…"}
+            {reachedEnd ? "Fully read — you can accept below" : `${progress}% read — keep scrolling to continue`}
           </p>
           <Button
             disabled={!reachedEnd}

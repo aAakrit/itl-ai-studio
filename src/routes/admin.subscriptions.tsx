@@ -32,7 +32,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableSkeleton } from "@/features/admin/AdminSkeletons";
-import { useAdminPayments, useAdminSubscriptions } from "@/hooks";
+
+import { FileText, Loader2 } from "lucide-react";
 import type { AdminPayment, SubscriptionSummary } from "@/types/admin";
 import {
   EditSubscriptionDialog,
@@ -53,6 +54,7 @@ import {
   subscriptionStatusLabel,
   titleCase,
 } from "@/features/admin/users/admin-user-utils";
+import {  useAdminPayments, useAdminSubscriptions, useDownloadReceipt} from "@/hooks";
 import { NewSubscriptionDialog } from "@/features/admin/Subscription/NewSubscriptionDialog";
 import { RecordCashPaymentDialog } from "@/features/admin/Subscription/RecordCashPaymentDialog";
 
@@ -420,12 +422,13 @@ function PaymentsTab() {
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Invoice</TableHead>
                 <TableHead>Paid at</TableHead>
+                <TableHead className="text-right">Receipt</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-14 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-14 text-center text-sm text-muted-foreground">
                     No payments match these filters.
                   </TableCell>
                 </TableRow>
@@ -451,6 +454,13 @@ function PaymentsTab() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatDateTime(p.paid_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {p.status === "success" ? (
+                      <ReceiptDownloadMenu paymentId={p.id} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -480,5 +490,29 @@ function PaymentsTab() {
 
       <RecordCashPaymentDialog open={recordOpen} onOpenChange={setRecordOpen} />
     </Card>
+  );
+}
+
+/** Small "download receipt" menu — PDF or Word, both server-generated with ITL AI branding. */
+function ReceiptDownloadMenu({ paymentId }: { paymentId: number }) {
+  const download = useDownloadReceipt();
+
+  const handleDownload = (format: "pdf" | "docx") => {
+    download.mutate({ id: paymentId, format });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5" disabled={download.isPending}>
+          {download.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+          Receipt
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleDownload("pdf")}>PDF</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownload("docx")}>Word (.docx)</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

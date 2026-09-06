@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -255,31 +255,43 @@ function Register() {
           </div>
         </div>
 
-        <div className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-secondary/20 p-3">
-          <Checkbox
-            id="terms-accept"
-            checked={termsAccepted}
-            disabled={!termsAccepted}
-            onCheckedChange={(v) => setTermsAccepted(Boolean(v))}
-            className="mt-0.5"
-          />
-          <Label htmlFor="terms-accept" className="text-xs font-normal leading-relaxed text-muted-foreground">
-            {termsAccepted ? (
-              "You've read and accepted our Terms & Conditions."
-            ) : (
-              <>
-                I have read and agree to the{" "}
-                <button
+        <div
+          className={cn(
+            "rounded-lg border p-3.5 transition-colors",
+            termsAccepted ? "border-success/40 bg-success/5" : "border-border/60 bg-secondary/20",
+          )}
+        >
+          {termsAccepted ? (
+            <div className="flex items-center gap-2.5">
+              <Checkbox id="terms-accept" checked disabled className="pointer-events-none" />
+              <Label htmlFor="terms-accept" className="text-xs font-medium text-success">
+                Terms & Conditions read and accepted.
+              </Label>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                1
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium">Before you can create your account</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Open and read the Terms & Conditions below. Once you scroll to the end, they'll be marked
+                  accepted automatically — there's nothing else to click.
+                </p>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setTermsOpen(true)}
-                  className="font-semibold text-primary underline underline-offset-2"
+                  className="mt-2 h-8 gap-1.5 text-xs"
                 >
-                  Terms & Conditions
-                </button>
-                . The checkbox unlocks once you've scrolled through the full document.
-              </>
-            )}
-          </Label>
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Open Terms & Conditions
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <Button

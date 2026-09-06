@@ -161,6 +161,22 @@ export const paymentService = {
     const { data } = await api.post(endpoints.adminPayments.recordCash, payload);
     return data;
   },
+  /** Downloads the receipt directly — same pattern as user export. */
+  async downloadReceipt(id: number, format: "pdf" | "docx" = "pdf") {
+    const response = await api.get(endpoints.adminPayments.receipt(id, format), { responseType: "blob" });
+    const disposition = (response.headers as Record<string, string>)["content-disposition"] ?? "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `receipt-${id}.${format}`;
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 
