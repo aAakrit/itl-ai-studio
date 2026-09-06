@@ -1,0 +1,4 @@
+- [ ] Merge public pricing and authenticated billing behavior into /pricing; preserve /billing/return.
+- [ ] Add mobile drawers and compact navigation to workspace and admin layouts.
+- [ ] Improve admin content and knowledge layouts on small screens.
+- [ ] Resolve typecheck/build issues and verify responsive routes.
