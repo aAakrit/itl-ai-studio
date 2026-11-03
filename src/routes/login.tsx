@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { authService } from "@/services/auth.service";
 import { cn } from "@/lib/utils";
+import { useIsBridgeProduct } from "@/features/bridge/useBridgeProduct";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -28,6 +29,7 @@ type FormData = z.infer<typeof schema>;
 
 function Login() {
   const nav = useNavigate();
+  const bridge = useIsBridgeProduct();
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,15 @@ function Login() {
     try {
       await authService.login(values.email, values.password, values.remember ?? false);
       toast.success("Signed in");
-      nav({ to: "/workspace" });
+      // The ITL Bridge AI Allow page sends people here with ?redirect=<its own URL>
+      // so they come back to it (txn / return_url intact). Only that one path is honoured.
+      const next = new URLSearchParams(window.location.search).get("redirect");
+      if (next && next.startsWith("/ai-connect/allow")) {
+        window.location.assign(next);
+        return;
+      }
+      // Bridge customers land on their account page (plan + Connect buttons).
+      nav({ to: bridge ? "/profile" : "/workspace" });
     } catch {
       setError("Invalid email or password.");
     }
@@ -61,15 +71,25 @@ function Login() {
 
   return (
     <AuthLayout
+      variant={bridge ? "bridge" : "ai"}
       title="Welcome back."
-      subtitle="Sign in to your ITL AI workspace."
+      subtitle={bridge ? "Sign in with your ITL account to connect your AI." : "Sign in to your ITL AI workspace."}
       footer={
-        <>
-          New to ITL AI?{" "}
-          <Link to="/register" className="font-semibold text-primary hover:underline">
-            Create an account
-          </Link>
-        </>
+        bridge ? (
+          <>
+            New to ITL Bridge AI?{" "}
+            <a href="/register?product=bridge" className="font-semibold text-primary hover:underline">
+              Create an account
+            </a>
+          </>
+        ) : (
+          <>
+            New to ITL AI?{" "}
+            <Link to="/register" className="font-semibold text-primary hover:underline">
+              Create an account
+            </Link>
+          </>
+        )
       }
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>

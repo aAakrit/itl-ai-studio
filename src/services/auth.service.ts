@@ -14,6 +14,8 @@ export interface RegisterPayload {
   address?: string;
   telephone?: string;
   gstin?: string;
+  /** "bridge" when registering from the ITL Bridge AI pages. */
+  product?: string;
 }
 
 export const authService = {
@@ -47,6 +49,7 @@ export const authService = {
       address: payload.address,
       telephone: payload.telephone,
       gstin: payload.gstin,
+      product: payload.product,
     });
 
     return data;

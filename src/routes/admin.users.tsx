@@ -254,6 +254,22 @@ function AdminUsersPage() {
             }}
           />
           <Select
+            value={filters.product || "all"}
+            onValueChange={(v) => {
+              setPage(1);
+              setFilters({ ...filters, product: v === "all" ? "" : v });
+            }}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All products</SelectItem>
+              <SelectItem value="itl_ai">ITL AI</SelectItem>
+              <SelectItem value="itl_bridge_ai">ITL Bridge AI</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
             value={`${sort}:${order}`}
             onValueChange={(v) => {
               const [s, o] = v.split(":");
@@ -409,6 +425,9 @@ function AdminUsersPage() {
                               {u.name}
                             </button>
                             <p className="truncate text-[11px] text-muted-foreground">{u.firm ?? "—"}</p>
+                            <Badge variant="outline" className="mt-1 px-1.5 py-0 text-[10px] font-normal">
+                              {u.product === "itl_bridge_ai" ? "ITL Bridge AI" : "ITL AI"}
+                            </Badge>
                           </div>
                         </div>
                       </TableCell>

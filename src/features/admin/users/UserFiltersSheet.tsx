@@ -45,6 +45,9 @@ export interface UserFilters {
 
   state: string;
   city: string;
+
+  /** itl_ai | itl_bridge_ai */
+  product: string;
 }
 
 export const EMPTY_FILTERS: UserFilters = {
@@ -62,6 +65,7 @@ export const EMPTY_FILTERS: UserFilters = {
   expiry_to: "",
   state: "",
   city: "",
+  product: "",
 };
 
 export function countActiveFilters(filters: UserFilters): number {

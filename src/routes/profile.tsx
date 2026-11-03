@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMe } from "@/hooks";
+import { BridgeConnectCard } from "@/features/bridge/BridgeConnectCard";
+
 
 export const Route = createFileRoute("/profile")({
   component: Profile,
@@ -41,6 +43,7 @@ function Profile() {
           </div>
           <Button className="mt-6 gradient-primary text-primary-foreground shadow-soft">Save changes</Button>
         </Card>
+        <BridgeConnectCard />
       </section>
     </PublicLayout>
   );

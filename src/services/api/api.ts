@@ -109,7 +109,14 @@ function createApi(config: Partial<ApiEnv> = {}): AxiosInstance {
         // protect there, and doing so can interrupt something the person
         // is actively filling out (registration, password reset, etc.).
         if (typeof window !== "undefined" && !isOnPublicPage()) {
-          window.location.assign("/login");
+          // The ITL Bridge AI Allow page must survive a re-login with its
+          // txn / return_url intact.
+          const { pathname, search } = window.location;
+          window.location.assign(
+            pathname === "/ai-connect/allow"
+              ? `/login?redirect=${encodeURIComponent(pathname + search)}`
+              : "/login",
+          );
         }
       }
 
@@ -328,6 +335,20 @@ export const endpoints = {
     summarizeResult: (jobId: string) => `/ai/summarize/result/${jobId}`,
     analytics: "/ai/analytics",
     health: "/ai/health",
+  },
+  bridge: {
+    status: "/bridge/status",
+    allow: "/bridge/allow",
+  },
+  adminBridge: {
+    stats: "/admin/bridge/stats",
+    plans: "/admin/bridge/plans",
+    plan: (plan: string) => `/admin/bridge/plans/${encodeURIComponent(plan)}`,
+    customers: "/admin/bridge/subscriptions",
+    customerLimits: (userId: string) => `/admin/bridge/subscriptions/${encodeURIComponent(userId)}/limits`,
+    customerStatus: (userId: string) => `/admin/bridge/subscriptions/${encodeURIComponent(userId)}/status`,
+    customerRevoke: (userId: string) => `/admin/bridge/subscriptions/${encodeURIComponent(userId)}/revoke`,
+    resync: "/admin/bridge/resync",
   },
   books: {
     list: "/admin/books",

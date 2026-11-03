@@ -106,12 +106,14 @@ function SubscriptionsTab() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [product, setProduct] = useState("all");
 
   const { data, isLoading } = useAdminSubscriptions({
     page,
     limit: 20,
     search: search || undefined,
     status: status === "all" ? undefined : status,
+    product: product === "all" ? undefined : product,
   });
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -157,6 +159,22 @@ function SubscriptionsTab() {
                 {o.label}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={product}
+          onValueChange={(v) => {
+            setPage(1);
+            setProduct(v);
+          }}
+        >
+          <SelectTrigger className="w-[170px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All products</SelectItem>
+            <SelectItem value="itl_ai">ITL AI</SelectItem>
+            <SelectItem value="itl_bridge_ai">ITL Bridge AI</SelectItem>
           </SelectContent>
         </Select>
         <Button

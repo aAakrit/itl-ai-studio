@@ -82,6 +82,8 @@ function TopNav() {
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary hover:text-foreground",
                   active ? "bg-secondary text-foreground" : "text-muted-foreground",
+                  item.highlight &&
+                    "border border-primary/30 bg-primary/8 text-primary hover:bg-primary/15 hover:text-primary",
                 )}
               >
                 {item.label}

@@ -18,6 +18,8 @@ import { searchService } from "@/services/search.service";
 import { globalSettingsService } from "@/services/settings.service";
 import { widgetService } from "@/services/widgets.service";
 import { formService } from "@/services/forms.service";
+import { adminBridgeService, bridgeService } from "@/services/bridge.service";
+
 
 /* Existing (preserved) */
 export const useHome = () => useQuery({ queryKey: ["home"], queryFn: () => homeService.getHome() });
@@ -416,9 +418,71 @@ import type {
   UserPreferencesUpdate,
   WorkspaceSettingsUpdate,
 } from "@/types/admin";
+import { BridgeCustomerListParams } from "@/types/bridge";
 
 export const useFeatureFlag = (key: string) =>
   useFeatureFlagStore((s) => s.isEnabled(key));
 
 export const usePermission = (permission: string) =>
   usePermissionStore((s) => s.can(permission));
+
+/* ---------- ITL Bridge AI ---------- */
+
+export const useMyBridgeStatus = () =>
+  useQuery({
+    queryKey: ["bridge", "status"],
+    queryFn: () => bridgeService.getMyStatus(),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+export const useBridgeDecision = () =>
+  useMutation({
+    mutationFn: (payload: { txn: string; return_url?: string | null; decision: "allow" | "cancel" }) =>
+      bridgeService.decide(payload),
+  });
+
+export const useAdminBridgeStats = () =>
+  useQuery({ queryKey: ["admin", "bridge", "stats"], queryFn: () => adminBridgeService.stats(), retry: false });
+
+export const useAdminBridgePlans = () =>
+  useQuery({ queryKey: ["admin", "bridge", "plans"], queryFn: () => adminBridgeService.plans(), retry: false });
+
+export const useAdminBridgeCustomers = (params: BridgeCustomerListParams) =>
+  useQuery({
+    queryKey: ["admin", "bridge", "customers", params],
+    queryFn: () => adminBridgeService.customers(params),
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+
+function useAdminBridgeMutation<TVars, TData = unknown>(mutationFn: (vars: TVars) => Promise<TData>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    // Every action changes limits, counts or statuses shown on the page.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "bridge"] }),
+  });
+}
+
+type BridgeLimits = { daily_limit: number | null; daily_doc_limit: number | null };
+
+export const useSetBridgePlanLimits = () =>
+  useAdminBridgeMutation(({ plan, limits }: { plan: string; limits: BridgeLimits }) =>
+    adminBridgeService.setPlanLimits(plan, limits),
+  );
+
+export const useSetBridgeCustomerLimits = () =>
+  useAdminBridgeMutation(({ userId, limits }: { userId: string; limits: BridgeLimits }) =>
+    adminBridgeService.setCustomerLimits(userId, limits),
+  );
+
+export const useSetBridgeCustomerStatus = () =>
+  useAdminBridgeMutation(({ userId, status }: { userId: string; status: "active" | "suspended" }) =>
+    adminBridgeService.setCustomerStatus(userId, status),
+  );
+
+export const useRevokeBridgeCustomer = () =>
+  useAdminBridgeMutation((userId: string) => adminBridgeService.revokeCustomer(userId));
+
+export const useResyncBridge = () => useAdminBridgeMutation(() => adminBridgeService.resync());

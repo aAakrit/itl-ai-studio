@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { authService } from "@/services/auth.service";
 import { cn } from "@/lib/utils";
 import { TermsGateDialog } from "@/features/admin/auth/TermsGateDialog";
+import { useIsBridgeProduct } from "@/features/bridge/useBridgeProduct";
 
 
 export const Route = createFileRoute("/register")({
@@ -68,6 +69,7 @@ function scorePassword(pw: string) {
 
 function Register() {
   const nav = useNavigate();
+  const bridge = useIsBridgeProduct();
   const [show, setShow] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -100,8 +102,13 @@ function Register() {
       address: values.address,
       telephone: values.telephone || undefined,
       gstin: values.gstin || undefined,
+      product: bridge ? "bridge" : undefined,
     });
     toast.success("Account created. Verify your email to continue.");
+    if (bridge) {
+      window.location.assign("/login?product=bridge");
+      return;
+    }
     nav({ to: "/login", });
   }
 
@@ -110,15 +117,25 @@ function Register() {
 
   return (
     <AuthLayout
-      title="Create your workspace."
-      subtitle="Start free. No credit card required."
+      variant={bridge ? "bridge" : "ai"}
+      title={bridge ? "Create your ITL account." : "Create your workspace."}
+      subtitle={bridge ? "One ITL account for ITL Bridge AI. Connect it to Claude, ChatGPT or Gemini." : "Start free. No credit card required."}
       footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-primary hover:underline">
-            Sign in
-          </Link>
-        </>
+        bridge ? (
+          <>
+            Already have an account?{" "}
+            <a href="/login?product=bridge" className="font-semibold text-primary hover:underline">
+              Sign in
+            </a>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Sign in
+            </Link>
+          </>
+        )
       }
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>

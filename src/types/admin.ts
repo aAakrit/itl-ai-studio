@@ -29,6 +29,9 @@ export interface UserListParams {
   state?: string;
   city?: string;
 
+  /** itl_ai | itl_bridge_ai */
+  product?: string;
+
   sort?: string;
   order?: "asc" | "desc";
 }
@@ -126,6 +129,7 @@ export interface AdminUser {
   status: string;
   last_login?: string | null;
   created_at: string;
+  product?: "itl_ai" | "itl_bridge_ai";
 
   subscription?: SubscriptionSummary | null;
   payment?: PaymentSummary | null;
@@ -192,6 +196,8 @@ export interface SubscriptionListParams {
   expiry_window?: string;
   expiry_from?: string;
   expiry_to?: string;
+  /** itl_ai | itl_bridge_ai */
+  product?: string;
 }
 
 export interface SubscriptionCreateManual {
