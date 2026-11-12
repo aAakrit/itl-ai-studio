@@ -184,6 +184,7 @@ export const endpoints = {
     initiate: "/payments/initiate",
     status: (orderId: string) => `/payments/${orderId}/status`,
     recheck: (orderId: string) => `/payments/${orderId}/recheck`,
+    recheckPending: "/payments/recheck-pending",
   },
   adminNotifications: {
     list: "/admin/notifications",

@@ -11,6 +11,11 @@ export const checkoutService = {
     const { data } = await api.get(endpoints.checkout.status(orderId));
     return data;
   },
+  /** Asks Paytm about this customer's own pending payments; plans are activated for any that were paid. */
+  async recheckPending(): Promise<{ checked: number; confirmed: string[] }> {
+    const { data } = await api.post(endpoints.checkout.recheckPending);
+    return data;
+  },
   async recheck(orderId: string): Promise<AdminPayment> {
     const { data } = await api.post(endpoints.checkout.recheck(orderId));
     return data;

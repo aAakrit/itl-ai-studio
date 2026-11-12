@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Check, Loader2, ShieldCheck } from "lucide-react";
 import { PublicLayout } from "@/layouts/PublicLayout";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { usePricing, useInitiatePayment } from "@/hooks";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { checkoutService } from "@/services/checkout.service";
 
 export const Route = createFileRoute("/billing")({
   component: Billing,
@@ -28,6 +29,39 @@ type Cycle = "monthly" | "yearly";
  * which the backend then redirects to /billing/return — no extra wiring
  * needed here for that part.
  */
+/**
+ * In-page mode only: while the checkout window is open, ask our server (which asks
+ * Paytm) about the order every few seconds. Paytm's in-page event does not always
+ * arrive — e.g. after a UPI QR payment — and without this a paid order would never
+ * be noticed. Resolves nothing; calls onPaid once the order is confirmed.
+ */
+function watchOrder(orderId: string, onPaid: () => void): () => void {
+  let stopped = false;
+  const startedAt = Date.now();
+  let timer = 0;
+
+  const tick = async () => {
+    if (stopped || Date.now() - startedAt > 12 * 60 * 1000) return;
+    try {
+      const payment = await checkoutService.recheck(orderId);
+      if (payment.status === "success") {
+        stopped = true;
+        onPaid();
+        return;
+      }
+    } catch {
+      // Paytm's status check can be briefly unavailable — just try again.
+    }
+    if (!stopped) timer = window.setTimeout(tick, 6000);
+  };
+
+  timer = window.setTimeout(tick, 6000);
+  return () => {
+    stopped = true;
+    window.clearTimeout(timer);
+  };
+}
+
 function loadPaytmCheckoutScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const marker = "data-paytm-checkout";
@@ -64,7 +98,12 @@ async function launchPaytmCheckout(params: {
     throw new Error("Paytm checkout didn't load correctly — please try again.");
   }
 
+  const goToReturnPage = (status: string) =>
+    window.location.assign(`/billing/return?order_id=${encodeURIComponent(params.orderId)}&status=${status}`);
+
   return new Promise((resolve, reject) => {
+    let stopWatching = () => {};
+
     Paytm.CheckoutJS.onLoad(() => {
       Paytm.CheckoutJS.init({
         root: "",
@@ -84,13 +123,27 @@ async function launchPaytmCheckout(params: {
             // payment — this only fires for in-page events beforehand,
             // most usefully when the person closes the checkout modal.
             if (eventName === "APP_CLOSED") {
-              reject(new Error("Checkout closed."));
+              stopWatching();
+              if (params.useCallback) {
+                reject(new Error("Checkout closed."));
+                return;
+              }
+              // In-page mode: the window may have been closed right AFTER paying.
+              // Ask the server (Paytm) once before treating it as cancelled.
+              checkoutService
+                .recheck(params.orderId)
+                .then((payment) => {
+                  if (payment.status === "success") goToReturnPage("success");
+                  else reject(new Error("Checkout closed."));
+                })
+                .catch(() => reject(new Error("Checkout closed.")));
             }
           },
           ...(params.useCallback
             ? {}
             : {
                 transactionStatus: () => {
+                  stopWatching();
                   try {
                     Paytm.CheckoutJS.close();
                   } catch {
@@ -98,13 +151,23 @@ async function launchPaytmCheckout(params: {
                   }
                   // The return page confirms the result with Paytm's Transaction Status
                   // API (server-to-server) — what the page is told here is never trusted.
-                  window.location.assign(`/billing/return?order_id=${encodeURIComponent(params.orderId)}&status=pending`);
+                  goToReturnPage("pending");
                 },
               }),
         },
       })
         .then(() => {
           Paytm.CheckoutJS.invoke();
+          if (!params.useCallback) {
+            stopWatching = watchOrder(params.orderId, () => {
+              try {
+                Paytm.CheckoutJS.close();
+              } catch {
+                /* already closed */
+              }
+              goToReturnPage("success");
+            });
+          }
           resolve();
         })
         .catch(reject);
@@ -118,6 +181,23 @@ function Billing() {
   const [cycle, setCycle] = useState<Cycle>("yearly");
   const [payingPlanId, setPayingPlanId] = useState<string | null>(null);
   const initiate = useInitiatePayment();
+
+  // Coming back to this page after paying (browser closed, tab lost, no redirect):
+  // ask Paytm about this customer's pending payments — a paid one activates the plan.
+  useEffect(() => {
+    if (!user) return;
+    checkoutService
+      .recheckPending()
+      .then((result) => {
+        if (result.confirmed.length > 0) {
+          toast.success("Your payment was confirmed — your plan is now active.");
+          window.location.assign(`/billing/return?order_id=${encodeURIComponent(result.confirmed[0])}&status=success`);
+        }
+      })
+      .catch(() => {
+        /* best effort — the server also checks in the background */
+      });
+  }, [user?.id]);
 
   const plans = (data?.plans ?? []) as any[];
 
