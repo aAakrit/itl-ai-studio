@@ -29,11 +29,15 @@ import { PromptComposer } from "./PromptComposer";
 import { ChatMessageBubble, TypingIndicator } from "./ChatMessage";
 import { useSidebarStore, useWorkspaceStore, useChatStore } from "@/store";
 import { useArchiveThread, useDeleteThread, useMyWorkspaceSettings, useRenameThread, useWorkspaceModules } from "@/hooks";
-import { chatService, isFileTool } from "@/services/workspace.service";
+import { applyResearchEvent, chatService, isFileTool, StreamUnavailableError } from "@/services/workspace.service";
 import { cn, generateId } from "@/lib/utils";
-import type { ChatMessage } from "@/types";
+import type { ChatMessage, ResearchTrace } from "@/types";
 import { Logo } from "@/components/common/Logo";
 import { siteConfig } from "@/config/site";
+
+/** Streamed research for the Ask Bot. Set VITE_ENABLE_STREAMING=false to turn it off. */
+const STREAMING_ENABLED = import.meta.env.VITE_ENABLE_STREAMING !== "false";
+const EMPTY_TRACE: ResearchTrace = { steps: [], rounds: 0, toolCount: 0 };
 
 const ERROR_MESSAGE_CONTENT = "⚠ Unable to generate a response.\n\nPlease try again.";
 
@@ -98,6 +102,19 @@ export function WorkspaceShell() {
   const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
   const submissionInFlight = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Streamed research (Ask Bot): live timeline, status line, greyed draft, and
+  // whether the Stop button can cancel the current run.
+  const [liveTrace, setLiveTrace] = useState<ResearchTrace>(EMPTY_TRACE);
+  const [liveStatus, setLiveStatus] = useState("");
+  const [liveDraft, setLiveDraft] = useState("");
+  const [streamActive, setStreamActive] = useState(false);
+  const userStoppedRef = useRef(false);
+
+  const handleStop = useCallback(() => {
+    userStoppedRef.current = true;
+    abortControllerRef.current?.abort();
+  }, []);
 
   // If the user switches Module or Tool while a request is still in flight,
   // that request now belongs to a workspace they've navigated away from —
@@ -253,9 +270,46 @@ export function WorkspaceShell() {
 
       setIsSending(true);
       if (file) setUploadProgress(0);
+      userStoppedRef.current = false;
       try {
         const backendConversationId = isNewConversation ? null : localThreadId;
         const context = { moduleId: requestModuleId, toolId: requestToolId };
+
+        // Ask Bot streams its research; if the stream can't be opened at all
+        // (old server, proxy, network) the normal request below answers instead.
+        const useStream = requestToolId === "ask" && STREAMING_ENABLED;
+        const streamAsk = async () => {
+          let trace: ResearchTrace = EMPTY_TRACE;
+          setLiveTrace(EMPTY_TRACE);
+          setLiveStatus("");
+          setLiveDraft("");
+          setStreamActive(true);
+          try {
+            const result = await chatService.streamMessage(
+              backendConversationId,
+              prompt,
+              context,
+              (type, ev) => {
+                if (type === "status") setLiveStatus(ev?.text ?? "");
+                else if (type === "answer_delta") setLiveDraft((d) => d + (ev?.text ?? ""));
+                else {
+                  trace = applyResearchEvent(trace, type, ev);
+                  setLiveTrace(trace);
+                }
+              },
+              controller.signal,
+            );
+            return trace.steps.length > 0
+              ? { ...result, assistantMessage: { ...result.assistantMessage, research: trace } }
+              : result;
+          } catch (streamError) {
+            if (streamError instanceof StreamUnavailableError) {
+              setStreamActive(false);
+              return chatService.sendMessage(backendConversationId, prompt, context, controller.signal);
+            }
+            throw streamError;
+          }
+        };
 
         // Notice Reply v3: the composer's first message in a new
         // conversation always analyses the pasted/attached notice. A
@@ -291,7 +345,9 @@ export function WorkspaceShell() {
                   setUploadProgress,
                   controller.signal,
                 )
-              : await chatService.sendMessage(backendConversationId, prompt, context, controller.signal);
+              : useStream
+                ? await streamAsk()
+                : await chatService.sendMessage(backendConversationId, prompt, context, controller.signal);
 
         if (isNewConversation && backendThread) {
           // Swap the temporary local thread for the real, backend-assigned one.
@@ -312,7 +368,11 @@ export function WorkspaceShell() {
         }
       } catch (error) {
         if (axios.isCancel(error)) {
-          // User navigated away from this workspace — not a failure, no error bubble.
+          // Stop button: nothing was saved on the server, so just settle the
+          // message the user typed. (Navigating away is also a cancel: no bubble.)
+          if (userStoppedRef.current && localThreadId) {
+            replaceMessage(localThreadId, optimisticUserMessage.id, { ...optimisticUserMessage, status: undefined });
+          }
           return;
         }
         if (localThreadId) {
@@ -327,6 +387,10 @@ export function WorkspaceShell() {
       } finally {
         setIsSending(false);
         setUploadProgress(undefined);
+        setStreamActive(false);
+        setLiveTrace(EMPTY_TRACE);
+        setLiveStatus("");
+        setLiveDraft("");
         submissionInFlight.current = false;
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
@@ -689,7 +753,7 @@ export function WorkspaceShell() {
                     noticeActionPending={isSending}
                   />
                 ))}
-                {isSending && <TypingIndicator />}
+                {isSending && <TypingIndicator steps={liveTrace.steps} status={liveStatus} draft={liveDraft} />}
                 <div ref={scrollAnchorRef} />
               </div>
             ) : (
@@ -704,6 +768,7 @@ export function WorkspaceShell() {
             <PromptComposer
               onSend={handleSend}
               isStreaming={isSending}
+              onStop={streamActive ? handleStop : undefined}
               disabled={activeModule?.disabled || activeTool?.disabled}
               disabledReason={activeModule?.disabled ? activeModule?.disabledReason : activeTool?.disabledReason}
               uploadProgress={uploadProgress}

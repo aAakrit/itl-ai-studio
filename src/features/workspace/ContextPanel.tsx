@@ -133,6 +133,8 @@ export function ContextPanel({ thread }: { thread: ChatThread | null }) {
                         {j.link && <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />}
                       </div>
                       {j.court && <p className="text-[11px] text-muted-foreground">{j.court}</p>}
+                      {j.bindingStatus && <p className="text-[10px] font-medium text-primary">{j.bindingStatus}</p>}
+                      {j.crossAct && <p className="text-[10px] leading-snug text-muted-foreground">{j.crossAct}</p>}
                       {j.ratio && <p className="text-[11px] leading-relaxed text-foreground/80">{j.ratio}</p>}
                       {!j.ratio && j.held && <p className="text-[11px] leading-relaxed text-foreground/80">{j.held}</p>}
                     </div>

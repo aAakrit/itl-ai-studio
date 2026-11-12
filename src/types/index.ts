@@ -224,6 +224,11 @@ export interface ChatMessage {
   progress?: number;
   stage?: string;
   feedback?: "up" | "down";
+  /** Income Tax answers: which Act was applied (e.g. "Income-tax Act, 1961") and for which period. */
+  governingAct?: string;
+  actBasis?: string;
+  /** How a streamed answer was researched — kept on the message for reviewers. Not stored on the server. */
+  research?: ResearchTrace;
   /** Notice Agent staged-workflow data — see NoticeWorkflowData. Only set for provider="notice" assistant messages. */
   notice?: NoticeWorkflowData;
 }
@@ -250,10 +255,28 @@ export interface Citation {
   snippet?: string;
 }
 
+/** One line of the streamed research timeline. */
+export interface ResearchStep {
+  kind: "plan" | "tools" | "step";
+  text: string;
+  /** One-line reasons for each tool call (kind "tools"). */
+  calls?: string[];
+  count?: number;
+}
+
+export interface ResearchTrace {
+  steps: ResearchStep[];
+  rounds: number;
+  toolCount: number;
+}
+
 export interface RelatedJudgement {
   id: string;
   partyName: string;
   court?: string;
+  /** Income Tax case law: who this ruling binds, and how a 1961-Act ruling relates to the 2025 Act. */
+  bindingStatus?: string;
+  crossAct?: string;
   facts?: string;
   issue?: string;
   held?: string;

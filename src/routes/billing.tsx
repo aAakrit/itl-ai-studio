@@ -54,6 +54,8 @@ async function launchPaytmCheckout(params: {
   orderId: string;
   txnToken: string;
   amount: string;
+  /** false = in-page mode (no callbackUrl): Paytm reports the result to the page instead of redirecting. */
+  useCallback: boolean;
 }): Promise<void> {
   await loadPaytmCheckoutScript(params.scriptUrl);
 
@@ -73,15 +75,32 @@ async function launchPaytmCheckout(params: {
           tokenType: "TXN_TOKEN",
           amount: params.amount,
         },
+        // In-page mode (the way the previous ITL site worked): no browser
+        // redirect — Paytm calls transactionStatus below when the payment ends.
+        ...(params.useCallback ? {} : { merchant: { redirect: false } }),
         handler: {
           notifyMerchant: (eventName: string) => {
-            // The browser navigates away on a completed payment by
-            // default — this only fires for in-page events beforehand,
+            // With a callbackUrl the browser navigates away on a completed
+            // payment — this only fires for in-page events beforehand,
             // most usefully when the person closes the checkout modal.
             if (eventName === "APP_CLOSED") {
               reject(new Error("Checkout closed."));
             }
           },
+          ...(params.useCallback
+            ? {}
+            : {
+                transactionStatus: () => {
+                  try {
+                    Paytm.CheckoutJS.close();
+                  } catch {
+                    /* already closed */
+                  }
+                  // The return page confirms the result with Paytm's Transaction Status
+                  // API (server-to-server) — what the page is told here is never trusted.
+                  window.location.assign(`/billing/return?order_id=${encodeURIComponent(params.orderId)}&status=pending`);
+                },
+              }),
         },
       })
         .then(() => {
@@ -113,6 +132,7 @@ function Billing() {
             orderId: res.paytm_params.orderId,
             txnToken: res.paytm_params.txnToken,
             amount: String(res.amount),
+            useCallback: res.paytm_params.useCallback !== false,
           }).catch((e: any) => {
             setPayingPlanId(null);
             // A closed/cancelled checkout isn't an error worth alarming over.

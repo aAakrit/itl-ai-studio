@@ -311,6 +311,7 @@ export const endpoints = {
   ai: {
     complete: "/ai/complete",
     query: "/ai/query",
+    queryStream: "/ai/query/stream",
     embed: "/ai/embed",
     tools: "/ai/tools",
     models: "/ai/models",

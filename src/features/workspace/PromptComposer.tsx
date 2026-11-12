@@ -18,8 +18,11 @@ export function PromptComposer({
   disabled = false,
   disabledReason,
   uploadProgress,
+  onStop,
 }: {
   onSend?: (prompt: string, file?: File | null) => void;
+  /** Stops a streamed answer in progress. Absent = the Stop button stays disabled. */
+  onStop?: () => void;
   isStreaming?: boolean;
   /** True when the active tool has no working backend yet (e.g. Draft Assistant). */
   disabled?: boolean;
@@ -80,7 +83,7 @@ export function PromptComposer({
     setIsClarifying(true);
     setClarifyOptions([]);
     try {
-      const { needsClarification, options } = await chatService.clarify(trimmed, activeToolId);
+      const { needsClarification, options } = await chatService.clarify(trimmed, activeToolId, undefined, activeModuleId);
       if (!needsClarification || options.length === 0) {
         toast.success("Your prompt is already clear — nothing to refine.");
         return;
@@ -91,7 +94,7 @@ export function PromptComposer({
     } finally {
       setIsClarifying(false);
     }
-  }, [value, isClarifying, activeToolId]);
+  }, [value, isClarifying, activeToolId, activeModuleId]);
 
   const pickOption = (option: string) => {
     setValue(option);
@@ -223,7 +226,15 @@ export function PromptComposer({
           </PopoverContent>
         </Popover>
         {isStreaming ? (
-          <Button type="button" size="icon" variant="destructive" disabled className="h-9 w-9 shrink-0 rounded-xl" title="Stopping mid-response isn't supported yet">
+          <Button
+            type="button"
+            size="icon"
+            variant="destructive"
+            disabled={!onStop}
+            onClick={onStop}
+            className="h-9 w-9 shrink-0 rounded-xl"
+            title={onStop ? "Stop" : "Stopping isn't available for this tool"}
+          >
             <StopCircle className="h-4 w-4" />
           </Button>
         ) : (

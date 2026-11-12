@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable prettier/prettier */
-import { isAxiosError } from "axios";
+import { CanceledError, isAxiosError } from "axios";
 import { api, endpoints } from "./api/api";
+import { useAuthStore } from "@/store/authStore";
 import { promptSuggestions, workspaceModules } from "@/mock/workspace";
 import type {
   Attachment,
@@ -18,6 +19,8 @@ import type {
   NoticeWorkflowData,
   PromptSuggestion,
   RelatedJudgement,
+  ResearchStep,
+  ResearchTrace,
 } from "@/types";
 
 /**
@@ -98,6 +101,8 @@ interface BackendRelatedJudgement {
   held?: string;
   ratio?: string;
   link?: string;
+  binding_status?: string | null;
+  cross_act?: string | null;
 }
 
 interface BackendAttachment {
@@ -124,6 +129,8 @@ interface BackendMessage {
   attachment?: BackendAttachment | null;
   job_id?: string | null;
   feedback?: "up" | "down" | null;
+  governing_act?: string | null;
+  act_basis?: string | null;
   created_at: string;
 }
 
@@ -163,6 +170,8 @@ interface BackendQueryResult {
     deep_research_used?: boolean | null;
     verification?: unknown;
     pipeline?: unknown;
+    governing_act?: string | null;
+    act_basis?: string | null;
     created_at: string;
   };
 }
@@ -358,6 +367,8 @@ const normalizeRelatedJudgement = (j: BackendRelatedJudgement, index: number): R
   held: j.held,
   ratio: j.ratio,
   link: j.link,
+  bindingStatus: j.binding_status ?? undefined,
+  crossAct: j.cross_act ?? undefined,
 });
 
 function normalizeNoticeSources(
@@ -540,6 +551,8 @@ const normalizeStoredMessage = (message: BackendMessage): ChatMessage => ({
   attachment: normalizeAttachment(message.attachment),
   attachments: [],
   feedback: message.feedback ?? undefined,
+  governingAct: message.governing_act ?? undefined,
+  actBasis: message.act_basis ?? undefined,
   status: message.status === "processing" ? "processing" : message.status === "error" ? "error" : undefined,
   jobId: message.job_id ?? undefined,
 });
@@ -620,6 +633,77 @@ const extractNoticeErrorDetail = (error: unknown, fallback: string): string => {
     if (body?.detail) return body.detail;
   }
   return fallback;
+};
+
+/** Thrown when the streaming endpoint couldn't be opened — the caller falls back to the normal call. */
+export class StreamUnavailableError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Streaming unavailable (${status})`);
+    this.name = "StreamUnavailableError";
+    this.status = status;
+  }
+}
+
+/** Builds the same return value sendMessage() produces from a POST /ai/query-shaped result. */
+const toSendResult = (
+  data: BackendQueryResult,
+  context: AiQueryContext,
+): { userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null } => {
+  const { conversation, user_message: userMessage, assistant_message: assistantMessage } = data;
+  return {
+    userMessage: {
+      id: String(userMessage.id),
+      role: "user",
+      content: userMessage.query,
+      createdAt: userMessage.created_at,
+      citations: [],
+      attachments: [] as Attachment[],
+    },
+    assistantMessage: {
+      id: String(assistantMessage.id),
+      role: "assistant",
+      content: assistantMessage.answer ?? "",
+      createdAt: assistantMessage.created_at,
+      citations: normalizeCitations(assistantMessage.sources),
+      relatedJudgements: normalizeRelatedJudgements(assistantMessage.related_judgements),
+      needsClarification: assistantMessage.needs_clarification ?? false,
+      deepResearchUsed: assistantMessage.deep_research_used ?? false,
+      governingAct: assistantMessage.governing_act ?? undefined,
+      actBasis: assistantMessage.act_basis ?? undefined,
+      attachments: [],
+    },
+    thread: normalizeThread(conversation, { moduleId: context.moduleId, toolId: context.toolId }),
+  };
+};
+
+/** Folds streamed progress events into the timeline shown while researching. */
+export const applyResearchEvent = (
+  trace: ResearchTrace,
+  type: string,
+  ev: any,
+): ResearchTrace => {
+  const steps: ResearchStep[] = [...trace.steps];
+  if (type === "plan") {
+    const issues: string[] = Array.isArray(ev?.issues) ? ev.issues : [];
+    steps.push({ kind: "plan", text: `Identified ${issues.length} issue${issues.length === 1 ? "" : "s"}: ${issues.join("; ")}` });
+    return { ...trace, steps };
+  }
+  if (type === "tools") {
+    const count = Number(ev?.count) || 1;
+    steps.push({
+      kind: "tools",
+      text: ev?.label || `Used ${count} tool${count === 1 ? "" : "s"}`,
+      calls: Array.isArray(ev?.calls) ? ev.calls : [],
+      count,
+    });
+    return { ...trace, steps, rounds: trace.rounds + 1, toolCount: trace.toolCount + count };
+  }
+  if (type === "step" && ev?.text) {
+    steps.push({ kind: "step", text: String(ev.text) });
+    return { ...trace, steps };
+  }
+  return trace;
 };
 
 export const chatService = {
@@ -725,10 +809,100 @@ export const chatService = {
         relatedJudgements: normalizeRelatedJudgements(assistantMessage.related_judgements),
         needsClarification: assistantMessage.needs_clarification ?? false,
         deepResearchUsed: assistantMessage.deep_research_used ?? false,
+        governingAct: assistantMessage.governing_act ?? undefined,
+        actBasis: assistantMessage.act_basis ?? undefined,
         attachments: [],
       },
       thread: normalizedThread,
     };
+  },
+
+  /**
+   * Streamed version of sendMessage() for the Ask Bot — POST /ai/query/stream
+   * (Server-Sent Events). Progress events go to `onEvent` as they arrive; the
+   * `final` event carries the same result /ai/query returns, so the return
+   * value is identical to sendMessage().
+   *
+   * Throws StreamUnavailableError when the stream could not be opened at all
+   * (nothing received yet) — the caller then falls back to sendMessage().
+   * An abort rejects with axios' CanceledError so existing cancel handling
+   * (`axios.isCancel`) applies unchanged.
+   */
+  streamMessage: async (
+    threadId: string | null,
+    prompt: string,
+    context: AiQueryContext,
+    onEvent: (type: string, data: any) => void,
+    signal?: AbortSignal,
+  ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage; thread: ChatThread | null }> => {
+    const route = TOOL_BACKEND_ROUTE_MAP[context.toolId];
+    if (!route) throw new Error(`No backend route configured for tool "${context.toolId}".`);
+
+    const token = useAuthStore.getState().token;
+    let received = false;
+
+    try {
+      const response = await fetch(`${api.defaults.baseURL ?? "/api"}${endpoints.ai.queryStream}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: prompt,
+          conversation_id: threadId ? Number(threadId) : undefined,
+          provider: route.provider,
+          tool: route.tool,
+          module_id: context.moduleId,
+        }),
+        signal,
+      });
+
+      if (!response.ok || !response.body) throw new StreamUnavailableError(response.status);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result: BackendQueryResult | null = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary: number;
+        // One SSE event per blank line.
+        while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
+          const raw = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary).replace(/^\r?\n\r?\n/, "");
+
+          let type = "message";
+          let data = "";
+          for (const line of raw.split(/\r?\n/)) {
+            if (line.startsWith("event:")) type = line.slice(6).trim();
+            else if (line.startsWith("data:")) data += line.slice(5).trim();
+          }
+          if (!data) continue; // keep-alive / open comment
+
+          received = true;
+          const parsed = JSON.parse(data);
+          if (type === "final") result = parsed.result as BackendQueryResult;
+          else if (type === "error") throw new Error(parsed.message || "Unable to generate a response.");
+          else onEvent(type, parsed);
+        }
+      }
+
+      if (!result) throw new Error("The research ended without an answer. Please try again.");
+      return toSendResult(result, context);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw new CanceledError("canceled");
+      // Couldn't even open the stream (network/proxy/old server): let the caller fall back.
+      if (!received && !(error instanceof StreamUnavailableError) && error instanceof TypeError) {
+        throw new StreamUnavailableError(0);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -1141,11 +1315,12 @@ export const chatService = {
     query: string,
     toolId: string,
     signal?: AbortSignal,
+    moduleId?: string,
   ): Promise<{ needsClarification: boolean; options: string[] }> => {
     const provider = TOOL_BACKEND_ROUTE_MAP[toolId]?.provider ?? "main";
     const { data } = await api.post<ApiEnvelope<{ needs_clarification?: boolean; options?: string[] }>>(
       endpoints.ai.clarify,
-      { query, provider },
+      { query, provider, module_id: moduleId },
       { signal },
     );
     return {

@@ -19,13 +19,15 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/store";
 import { chatService } from "@/services/workspace.service";
-import type { ChatMessage, Citation, NoticeWorkflowData } from "@/types";
+import type { ChatMessage, Citation, NoticeWorkflowData, ResearchStep } from "@/types";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ResearchTraceSummary, ResearchTimeline } from "./ResearchTrace";
 
 const REFINE_SUGGESTIONS = ["Make it more formal", "Summarize", "Explain in simple language", "Add more case law"];
 
@@ -276,6 +278,17 @@ export function ChatMessageBubble({
             onRefine={onNoticeRefine}
           />
         )}
+
+        {!isUser && !isError && !isClarification && !isProcessing && message.governingAct && (
+          <div className="mt-2">
+            <Badge variant="outline" className="gap-1 rounded-full border-primary/30 bg-primary/8 py-0.5 text-[10px] font-medium text-primary">
+              Law applied: {message.governingAct}
+              {message.actBasis ? ` · ${message.actBasis}` : ""}
+            </Badge>
+          </div>
+        )}
+
+        {!isUser && !isError && !isProcessing && message.research && <ResearchTraceSummary trace={message.research} />}
 
         {!isUser && !isError && !isClarification && !isProcessing && message.deepResearchUsed && (
           <div className="mt-2">
@@ -851,7 +864,16 @@ const THINKING_PHASES = [
   { after: 160, label: "Still working — complex queries may take a little longer..." },
 ];
 
-export function TypingIndicator() {
+export function TypingIndicator({
+  steps,
+  status,
+  draft,
+}: {
+  /** Streamed research progress (Ask Bot). Omitted for tools that don't stream. */
+  steps?: ResearchStep[];
+  status?: string;
+  draft?: string;
+} = {}) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -911,8 +933,15 @@ export function TypingIndicator() {
           </div>
         </div>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {phase.label}
+          {status || phase.label}
         </p>
+        {steps && steps.length > 0 && <ResearchTimeline steps={steps} />}
+        {draft && (
+          <p className="mt-3 max-h-24 overflow-y-auto whitespace-pre-wrap border-t border-border/60 pt-3 text-xs italic leading-relaxed text-muted-foreground/70">
+            {draft}
+            <span className="ml-1 not-italic">Checking citations…</span>
+          </p>
+        )}
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all duration-700 ease-out"

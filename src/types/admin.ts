@@ -427,5 +427,7 @@ export interface PaymentInitiateResponse {
     /** Paytm JS Checkout SDK script — load this, then window.Paytm.CheckoutJS.init()/.invoke(). */
     scriptUrl: string;
     isStaging: boolean;
+    /** false = no callbackUrl was sent to Paytm: run the checkout in-page (redirect:false). Absent on older servers = true. */
+    useCallback?: boolean;
   };
 }
