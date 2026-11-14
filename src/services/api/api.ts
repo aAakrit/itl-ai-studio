@@ -58,6 +58,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/disclaimer",
   "/intellectual-property",
   "/faq",
+  "/billing",
   "/welcome",
 ];
 
@@ -179,6 +180,18 @@ export const endpoints = {
       detail: (id: number) => `/admin/payments/${id}`,
       recordCash: "/admin/payments/cash",
       receipt: (id: number, format: "pdf" | "docx") => `/admin/payments/${id}/receipt?format=${format}`,
+      bill: (id: number) => `/admin/payments/${id}/bill`,
+  },
+  adminCoupons: {
+    list: "/admin/coupons",
+    detail: (id: number) => `/admin/coupons/${id}`,
+  },
+  adminBills: {
+    list: "/admin/bills",
+    prefill: "/admin/bills/prefill",
+    detail: (id: number) => `/admin/bills/${id}`,
+    cancel: (id: number) => `/admin/bills/${id}/cancel`,
+    pdf: (id: number) => `/admin/bills/${id}/pdf`,
   },
   checkout: {
     initiate: "/payments/initiate",

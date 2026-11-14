@@ -19,6 +19,8 @@ export const adminNav = [
     // { label: "Roles", to: "/admin/roles", icon: "ShieldCheck" },
     // { label: "Permissions", to: "/admin/permissions", icon: "KeyRound" },
     { label: "Subscriptions", to: "/admin/subscriptions", icon: "CreditCard" },
+    { label: "Coupons", to: "/admin/coupons", icon: "Tag" },
+    { label: "Bills", to: "/admin/bills", icon: "Receipt" },
     { label: "ITL Bridge AI", to: "/admin/bridge", icon: "Sparkles" },
   ]},
   { section: "Content", items: [

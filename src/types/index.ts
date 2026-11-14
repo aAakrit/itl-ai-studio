@@ -34,9 +34,13 @@ export interface FAQItem {
 export interface PricingPlan {
   id: string;
   name: string;
-  price: number;
+  /** Older plans only. New plans use basePrice (price before GST for the whole term). */
+  price?: number;
   yearlyPrice?: number;
-  period: "monthly" | "yearly";
+  basePrice?: number;
+  termYears?: number;
+  products?: string[];
+  period: string;
   currency: string;
   description: string;
   featured?: boolean;

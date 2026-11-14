@@ -39,6 +39,13 @@ import type {
   SubscriptionSummary,
 } from "@/types/admin";
 import type { PricingPlan } from "@/types";
+import { planBasePrice, planOptionLabel } from "@/lib/plans";
+import {
+  ProductAccessField,
+  accessFromProducts,
+  productsFromAccess,
+  type ProductAccess,
+} from "@/features/admin/Subscription/ProductAccessField";
 import {
   BILLING_CYCLE_OPTIONS,
   SUBSCRIPTION_SOURCE_OPTIONS,
@@ -54,19 +61,17 @@ const GST_RATE = 18;
 /** Optional client-side preview only — the backend response is authoritative. */
 function PricingPreview({
   plan,
-  cycle,
   override,
 }: {
   plan?: PricingPlan;
-  cycle: BillingCycle;
   override: string;
 }) {
   const base = useMemo(() => {
     const parsed = Number(override);
     if (override !== "" && Number.isFinite(parsed)) return parsed;
     if (!plan) return null;
-    return cycle === "yearly" ? (plan.yearlyPrice ?? plan.price) : plan.price;
-  }, [override, plan, cycle]);
+    return planBasePrice(plan);
+  }, [override, plan]);
 
   if (base === null || base === undefined) {
     return (
@@ -122,7 +127,7 @@ export function CreateSubscriptionDialog({
   const create = useCreateManualSubscription();
 
   const [planId, setPlanId] = useState("");
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [access, setAccess] = useState<ProductAccess>("plan");
   const [source, setSource] = useState<SubscriptionSource>("manual");
   const [override, setOverride] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -141,7 +146,7 @@ export function CreateSubscriptionDialog({
       {
         user_id: userId,
         plan_id: planId,
-        billing_cycle: cycle,
+        products: productsFromAccess(access),
         source,
         override_base_price:
           override !== "" && Number.isFinite(parsedOverride) ? parsedOverride : null,
@@ -180,27 +185,13 @@ export function CreateSubscriptionDialog({
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {planOptionLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Billing cycle</Label>
-              <Select value={cycle} onValueChange={(v) => setCycle(v as BillingCycle)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILLING_CYCLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ProductAccessField value={access} onChange={setAccess} allowPlanDefault />
             <div className="space-y-1.5">
               <Label>Source</Label>
               <Select value={source} onValueChange={(v) => setSource(v as SubscriptionSource)}>
@@ -256,7 +247,7 @@ export function CreateSubscriptionDialog({
             </div>
           </div>
 
-          <PricingPreview plan={plan} cycle={cycle} override={override} />
+          <PricingPreview plan={plan} override={override} />
         </div>
 
         <DialogFooter>
@@ -299,9 +290,8 @@ export function EditSubscriptionDialog({
   const update = useUpdateSubscription();
 
   const [planId, setPlanId] = useState(subscription.plan_id ?? "");
-  const [cycle, setCycle] = useState<BillingCycle>(
-    (subscription.billing_cycle as BillingCycle) ?? "monthly",
-  );
+  const initialAccess = accessFromProducts(subscription.products);
+  const [access, setAccess] = useState<ProductAccess>(initialAccess);
   const [status, setStatus] = useState<SubscriptionStatus>(
     (subscription.status as SubscriptionStatus) ?? "active",
   );
@@ -313,7 +303,7 @@ export function EditSubscriptionDialog({
   const [reason, setReason] = useState("");
 
   const planChanged = planId !== (subscription.plan_id ?? "");
-  const cycleChanged = cycle !== (subscription.billing_cycle ?? "monthly");
+  const cycleChanged = access !== initialAccess;
 
   const submit = () => {
     if (!subscription.id) return;
@@ -321,8 +311,9 @@ export function EditSubscriptionDialog({
       {
         id: subscription.id,
         patch: {
-          plan_id: planId || undefined,
-          billing_cycle: cycle,
+          plan_id: planChanged ? planId || undefined : undefined,
+          // Only sent when the admin changed it — otherwise a plan change decides the products.
+          products: access !== initialAccess ? productsFromAccess(access) : undefined,
           status,
           start_date: fromDateInput(startDate),
           expiry_date: fromDateInput(expiryDate),
@@ -368,7 +359,7 @@ export function EditSubscriptionDialog({
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {planOptionLabel(p)}
                     </SelectItem>
                   ))}
                   {planId && !plans.some((p) => p.id === planId) && (
@@ -377,21 +368,7 @@ export function EditSubscriptionDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Billing cycle</Label>
-              <Select value={cycle} onValueChange={(v) => setCycle(v as BillingCycle)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILLING_CYCLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ProductAccessField value={access} onChange={setAccess} />
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as SubscriptionStatus)}>
@@ -455,14 +432,21 @@ export function EditSubscriptionDialog({
             </div>
           </div>
 
-          {(planChanged || cycleChanged) && (
+          {planChanged && (
             <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p>
-                Changing the {planChanged && "plan"}
-                {planChanged && cycleChanged && " and "}
-                {cycleChanged && "billing cycle"} re-snapshots the pricing. The server recalculates
-                base price, GST and payable amount — the new values will be shown after saving.
+                Changing the plan re-snapshots the pricing. The server recalculates base price, GST and
+                payable amount — the new values will be shown after saving.
+              </p>
+            </div>
+          )}
+          {cycleChanged && (
+            <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <p>
+                Product access changes take effect immediately. Removing ITL Bridge AI also revokes the
+                customer's Bridge access.
               </p>
             </div>
           )}

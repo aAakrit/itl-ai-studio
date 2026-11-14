@@ -6,7 +6,7 @@ import {
   Image, Info, KeyRound, Landmark, Layers, LayoutDashboard, LayoutTemplate, Mail, Menu,
   MessageSquare, MessagesSquare, Palette, PenLine, Pencil, Plus, Receipt, Scale, ScanLine,
   ScrollText, Search, Send, Settings, Shield, ShieldCheck, Sparkles, Sun, Upload, User,
-  Users, Wallet,
+  Users, Wallet, Tag,
 } from "lucide-react";
 
 /**
@@ -26,7 +26,7 @@ const ICONS: Record<string, React.ComponentType<LucideProps>> = {
   Image, Info, KeyRound, Landmark, Layers, LayoutDashboard, LayoutTemplate, Mail, Menu,
   MessageSquare, MessagesSquare, Palette, PenLine, Pencil, Plus, Receipt, Scale, ScanLine,
   ScrollText, Search, Send, Settings, Shield, ShieldCheck, Sparkles, Sun, Upload, User,
-  Users, Wallet,
+  Users, Wallet, Tag,
 };
 
 export function Icon({ name, ...props }: { name: string } & LucideProps) {

@@ -49,7 +49,7 @@ export type SubscriptionStatus =
 
 export type PaymentType = "paytm" | "cash" | "complimentary";
 export type PaymentStatus = "pending" | "success" | "failed" | "refunded";
-export type BillingCycle = "monthly" | "yearly";
+export type BillingCycle = "monthly" | "yearly" | "3year" | "5year";
 export type SubscriptionSource = "manual" | "complimentary";
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +63,8 @@ export interface SubscriptionSummary {
   plan_id: string | null;
   plan_name: string | null;
   billing_cycle: string | null;
+  products?: string[] | null;
+  term_years?: number | null;
   status: string | null;
   source: string | null;
   base_price: number | null;
@@ -203,7 +205,10 @@ export interface SubscriptionListParams {
 export interface SubscriptionCreateManual {
   user_id: number;
   plan_id: string;
-  billing_cycle: BillingCycle;
+  /** Ignored by the server — the plan defines the term. */
+  billing_cycle?: BillingCycle;
+  /** Product access override; omit to use what the plan includes. */
+  products?: string[];
   source: SubscriptionSource;
   override_base_price?: number | null;
   override_start_date?: string | null;
@@ -214,6 +219,8 @@ export interface SubscriptionCreateManual {
 export interface SubscriptionUpdate {
   plan_id?: string;
   billing_cycle?: BillingCycle;
+  /** itl_ai, or itl_ai + itl_bridge_ai (Bridge is never standalone). */
+  products?: string[];
   status?: SubscriptionStatus;
   start_date?: string;
   expiry_date?: string;
@@ -270,8 +277,9 @@ export interface AdminPayment {
 export interface CashPaymentCreate {
   user_id: number;
   plan_id: string;
-  billing_cycle: BillingCycle;
+  billing_cycle?: BillingCycle;
   override_base_price?: number | null;
+  salesman_id?: number | null;
   payment_notes?: string | null;
 }
 
@@ -413,7 +421,7 @@ export interface UserPreferencesUpdate {
 
 export interface PaymentInitiateRequest {
   plan_id: string;
-  billing_cycle: BillingCycle;
+  billing_cycle?: BillingCycle;
 }
 
 export interface PaymentInitiateResponse {

@@ -24,6 +24,7 @@ import {
 import { useRecordCashPayment, usePricing } from "@/hooks";
 import type { AdminUser, BillingCycle } from "@/types/admin";
 import type { PricingPlan } from "@/types";
+import { planBasePrice, planOptionLabel, planTermYears, termLabel } from "@/lib/plans";
 import { UserPicker } from "./UserPicker";
 import { BILLING_CYCLE_OPTIONS, apiErrorMessage, formatMoney } from "@/features/admin/users/admin-user-utils";
 
@@ -42,8 +43,7 @@ export function RecordCashPaymentDialog({
 
   const [user, setUser] = useState<AdminUser | null>(defaultUser ?? null);
   const [planId, setPlanId] = useState("");
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const [override, setOverride] = useState("");
+    const [override, setOverride] = useState("");
   const [notes, setNotes] = useState("");
 
   const plan = plans.find((p) => p.id === planId);
@@ -51,7 +51,7 @@ export function RecordCashPaymentDialog({
     const parsed = Number(override);
     if (override !== "" && Number.isFinite(parsed)) return parsed;
     if (!plan) return null;
-    return cycle === "yearly" ? (plan.yearlyPrice ?? plan.price) : plan.price;
+    return planBasePrice(plan);
   })();
 
   const submit = () => {
@@ -68,7 +68,6 @@ export function RecordCashPaymentDialog({
       {
         user_id: user.id,
         plan_id: planId,
-        billing_cycle: cycle,
         override_base_price:
           override !== "" && Number.isFinite(parsedOverride) ? parsedOverride : null,
         payment_notes: notes.trim() || null,
@@ -113,26 +112,17 @@ export function RecordCashPaymentDialog({
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {planOptionLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Billing cycle</Label>
-              <Select value={cycle} onValueChange={(v) => setCycle(v as BillingCycle)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILLING_CYCLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Term</Label>
+              <div className="flex h-10 items-center rounded-md border border-border/60 bg-secondary/30 px-3 text-sm text-muted-foreground">
+                {plan ? termLabel(planTermYears(plan)) : "Set by the plan"}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cash-override">Price override (optional)</Label>

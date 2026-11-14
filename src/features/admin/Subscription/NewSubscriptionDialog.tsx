@@ -25,6 +25,7 @@ import {
 import { useCreateManualSubscription, usePricing } from "@/hooks";
 import type { AdminUser, BillingCycle, SubscriptionSource } from "@/types/admin";
 import type { PricingPlan } from "@/types";
+import { ProductAccessField, productsFromAccess, type ProductAccess } from "./ProductAccessField";
 import { UserPicker } from "./UserPicker";
 import {
   BILLING_CYCLE_OPTIONS,
@@ -33,6 +34,7 @@ import {
   formatMoney,
   fromDateInput,
 } from "@/features/admin/users/admin-user-utils";
+import { planBasePrice, planOptionLabel } from "@/lib/plans";
 
 const GST_RATE = 18;
 
@@ -54,7 +56,7 @@ export function NewSubscriptionDialog({
 
   const [user, setUser] = useState<AdminUser | null>(null);
   const [planId, setPlanId] = useState("");
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [access, setAccess] = useState<ProductAccess>("plan");
   const [source, setSource] = useState<SubscriptionSource>("manual");
   const [override, setOverride] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -66,8 +68,8 @@ export function NewSubscriptionDialog({
     const parsed = Number(override);
     if (override !== "" && Number.isFinite(parsed)) return parsed;
     if (!plan) return null;
-    return cycle === "yearly" ? (plan.yearlyPrice ?? plan.price) : plan.price;
-  }, [override, plan, cycle]);
+    return planBasePrice(plan);
+  }, [override, plan]);
 
   const reset = () => {
     setUser(null);
@@ -92,7 +94,7 @@ export function NewSubscriptionDialog({
       {
         user_id: user.id,
         plan_id: planId,
-        billing_cycle: cycle,
+        products: productsFromAccess(access),
         source,
         override_base_price:
           override !== "" && Number.isFinite(parsedOverride) ? parsedOverride : null,
@@ -135,27 +137,13 @@ export function NewSubscriptionDialog({
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {planOptionLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Billing cycle</Label>
-              <Select value={cycle} onValueChange={(v) => setCycle(v as BillingCycle)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILLING_CYCLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ProductAccessField value={access} onChange={setAccess} allowPlanDefault />
             <div className="space-y-1.5">
               <Label>Source</Label>
               <Select value={source} onValueChange={(v) => setSource(v as SubscriptionSource)}>

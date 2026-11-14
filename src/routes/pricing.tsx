@@ -10,6 +10,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { usePricing } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { SectionHeader, CtaBanner } from "@/features/landing/sections";
+import { CheckoutDialog } from "@/features/checkout/CheckoutDialog";
+import { planBasePrice, planTermYears, termLabel } from "@/lib/plans";
+import type { PricingPlan } from "@/types";
 
 export const Route = createFileRoute("/pricing")({
   component: Pricing,
@@ -23,11 +26,10 @@ export const Route = createFileRoute("/pricing")({
   }),
 });
 
-type Cycle = "monthly" | "yearly";
-
 function Pricing() {
   const { data } = usePricing();
-  const [cycle, setCycle] = useState<Cycle>("yearly");
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   if (!data) return null;
   const { plans, comparison, enterprise, faqs } = data;
 
@@ -42,7 +44,7 @@ function Pricing() {
             Priced for practice, <span className="text-gradient">not for demos.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-            Start free. Upgrade when your team is ready. Firm-wide licences and enterprise deployments available.
+            Choose ITL AI on its own, or add ITL Bridge AI for one, three or five years.
           </p>
 
           {/* <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-soft">
@@ -71,16 +73,15 @@ function Pricing() {
               </button>
             ))}
           </div> */}
-          <span className="mt-8 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-soft"></span>
         </div>
       </section>
 
-      {/* Plans */}
-      <section className="mx-auto max-w-3xl px-6 pb-16">
-        <div className="grid gap-5 md:grid-cols-2">
+      {/* Plans — the ITL AI + ITL Bridge AI bundles first (1 / 3 / 5 years), ITL AI alone last */}
+      <section className="mx-auto max-w-6xl px-6 pb-16">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((p: any, i: any) => {
-            const price = cycle === "yearly" && p.yearlyPrice != null ? p.yearlyPrice : p.price;
-            const suffix = p.price === 0 ? "" : cycle === "yearly" ? "/ year" : "/ month";
+            const price = planBasePrice(p);
+            const years = planTermYears(p);
             return (
               <motion.div
                 key={p.id}
@@ -88,7 +89,7 @@ function Pricing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
                 className={cn(
-                  "relative rounded-3xl border p-8 shadow-soft transition-shadow hover:shadow-elevated",
+                  "relative flex flex-col rounded-3xl border p-7 shadow-soft transition-shadow hover:shadow-elevated",
                   p.featured
                     ? "border-primary/40 bg-card shadow-float ring-1 ring-primary/20"
                     : "border-border/60 bg-card",
@@ -101,28 +102,31 @@ function Pricing() {
                 )}
                 <h3 className="font-display text-lg font-semibold">{p.name}</h3>
                 <p className="mt-1 min-h-[40px] text-sm text-muted-foreground">{p.description}</p>
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="font-display text-5xl font-bold tracking-tight">
+                <div className="mt-5 flex items-baseline gap-1">
+                  <span className="font-display text-4xl font-bold tracking-tight">
                     {p.currency}
-                    {price.toLocaleString("en-IN")}
+                    {price !== null ? price.toLocaleString("en-IN") : "—"}
                   </span>
-                  <span className="text-sm text-muted-foreground">{suffix}</span>
+                  <span className="text-sm text-muted-foreground">/ {termLabel(years)}</span>
                 </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">+ 18% GST</p>
                 <Button
-                  asChild
                   className={cn(
                     "mt-6 h-11 w-full rounded-xl",
                     p.featured ? "gradient-primary text-primary-foreground shadow-soft" : "",
                   )}
                   variant={p.featured ? "default" : "outline"}
+                  disabled={price === null}
+                  onClick={() => {
+                    setCheckoutPlan(p as PricingPlan);
+                    setCheckoutOpen(true);
+                  }}
                 >
-                  <Link to="/register">
-                    {p.cta}
-                    <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Link>
+                  {p.cta ?? "Subscribe Now"}
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
                 <ul className="mt-6 space-y-2.5">
-                  {p.features.map((f: any) => (
+                  {(p.features ?? []).map((f: any) => (
                     <li key={f} className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{f}</span>
@@ -134,6 +138,8 @@ function Pricing() {
           })}
         </div>
       </section>
+
+      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} plan={checkoutPlan} />
 
       {/* Comparison */}
       {/* <section className="mx-auto max-w-6xl px-6 py-16">

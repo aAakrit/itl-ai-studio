@@ -55,6 +55,9 @@ import {
   titleCase,
 } from "@/features/admin/users/admin-user-utils";
 import {  useAdminPayments, useAdminSubscriptions, useDownloadReceipt} from "@/hooks";
+import { toast } from "sonner";
+import { adminBillingService } from "@/services/admin-billing.service";
+import { downloadBlob } from "@/services/checkout-public.service";
 import { NewSubscriptionDialog } from "@/features/admin/Subscription/NewSubscriptionDialog";
 import { RecordCashPaymentDialog } from "@/features/admin/Subscription/RecordCashPaymentDialog";
 
@@ -528,8 +531,19 @@ function ReceiptDownloadMenu({ paymentId }: { paymentId: number }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleDownload("pdf")}>PDF</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleDownload("docx")}>Word (.docx)</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownload("pdf")}>Receipt — PDF</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownload("docx")}>Receipt — Word (.docx)</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={async () => {
+            try {
+              downloadBlob(await adminBillingService.paymentBill(paymentId), `GST-Bill-${paymentId}.pdf`);
+            } catch {
+              toast.error("No GST bill exists for this payment yet — create one under Admin → Bills.");
+            }
+          }}
+        >
+          GST bill — PDF
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
