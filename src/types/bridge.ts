@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 
 /** Plan codes understood by the ITL Bridge AI (MCP) server. */
-export type BridgePlanCode = "bridge_yearly" | "bridge_3year" | "bundle_yearly" | "bundle_3year";
+export type BridgePlanCode = "bridge_yearly" | "bridge_3year" | "bundle_yearly" | "bundle_3year" | "bundle_5year";
 
 export interface BridgeSubscriptionStatus {
   user_id: string;
@@ -37,10 +37,33 @@ export interface BridgeConnectLinks {
   mcp_url?: string;
 }
 
-export interface BridgeMyStatus {
-  enabled: boolean;
+/** One AI connector: "gst" = GST AI, "it" = Income Tax AI. */
+export interface BridgeConnectorStatus {
+  key: "gst" | "it";
+  label: string;
   status: BridgeSubscriptionStatus | null;
   links: BridgeConnectLinks | null;
+  /** Set when the connector couldn't be reached — the card still renders the rest. */
+  error: string | null;
+  /** The customer approved this connector on the Allow page. */
+  connected: boolean;
+  connected_at: string | null;
+  /** An admin switched this connector off for the customer. */
+  disabled: boolean;
+}
+
+export interface BridgeConnectorAccess {
+  key: "gst" | "it";
+  label: string;
+  enabled: boolean;
+}
+
+export interface BridgeMyStatus {
+  /** Bridge is configured on this deployment. */
+  enabled: boolean;
+  /** The customer has an active subscription that includes ITL Bridge AI. When false, `connectors` is empty. */
+  has_access: boolean;
+  connectors: BridgeConnectorStatus[];
 }
 
 export interface BridgePlanLimits {

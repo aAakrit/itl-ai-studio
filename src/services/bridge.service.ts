@@ -2,7 +2,7 @@
 
 import type { Paginated } from "@/types/admin";
 import { api, endpoints } from "./api/api";
-import { BridgeMyStatus, BridgeStats, BridgePlanLimits, BridgeCustomerListParams, BridgeCustomer } from "@/types/bridge";
+import { BridgeConnectorAccess, BridgeMyStatus, BridgeStats, BridgePlanLimits, BridgeCustomerListParams, BridgeCustomer } from "@/types/bridge";
 
 /** Strips empty strings/null/undefined so we never send blank filters. */
 function clean<T extends Record<string, unknown>>(params: T): Record<string, unknown> {
@@ -65,6 +65,18 @@ export const adminBridgeService = {
   },
   async resync(): Promise<{ sent: number; failed: number; skipped: number }> {
     const { data } = await api.post(endpoints.adminBridge.resync);
+    return data;
+  },
+};
+
+/** Admin: switch a connector (GST AI / Income Tax AI) on or off for one customer. */
+export const adminConnectorAccessService = {
+  async get(userId: number): Promise<BridgeConnectorAccess[]> {
+    const { data } = await api.get(`/admin/bridge/access/${userId}`);
+    return data.connectors;
+  },
+  async set(userId: number, connector: string, enabled: boolean): Promise<{ connectors: BridgeConnectorAccess[]; synced: boolean }> {
+    const { data } = await api.put(`/admin/bridge/access/${userId}`, { connector, enabled });
     return data;
   },
 };

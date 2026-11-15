@@ -40,6 +40,7 @@ import type {
 } from "@/types/admin";
 import type { PricingPlan } from "@/types";
 import { planBasePrice, planOptionLabel } from "@/lib/plans";
+import { ConnectorAccessField } from "@/features/admin/Subscription/ConnectorAccessField";
 import {
   ProductAccessField,
   accessFromProducts,
@@ -369,6 +370,7 @@ export function EditSubscriptionDialog({
               </Select>
             </div>
             <ProductAccessField value={access} onChange={setAccess} />
+            {access === "bundle" && subscription.user_id != null && <ConnectorAccessField userId={subscription.user_id} />}
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as SubscriptionStatus)}>

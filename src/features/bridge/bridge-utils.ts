@@ -5,6 +5,7 @@ export const BRIDGE_PLAN_LABELS: Record<string, string> = {
   bridge_3year: "ITL Bridge AI — 3 Years",
   bundle_yearly: "ITL Bridge AI + Library — Yearly",
   bundle_3year: "ITL Bridge AI + Library — 3 Years",
+  bundle_5year: "ITL Bridge AI + Library — 5 Years",
 };
 
 export function bridgePlanLabel(plan?: string | null): string {

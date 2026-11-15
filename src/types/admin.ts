@@ -58,6 +58,7 @@ export type SubscriptionSource = "manual" | "complimentary";
 
 export interface SubscriptionSummary {
   id: number | null;
+  user_id?: number | null;
   user_name?: string | null;
   user_email?: string | null;
   plan_id: string | null;
@@ -79,7 +80,6 @@ export interface SubscriptionSummary {
   notes: string | null;
   created_at?: string | null;
   updated_at?: string | null;
-  user_id?: number | null;
 }
 
 export interface PaymentSummary {
