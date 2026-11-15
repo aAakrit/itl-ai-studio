@@ -78,7 +78,7 @@ export function UserDetailDialog({
         ) : !user ? (
           <p className="p-6 text-sm text-muted-foreground">Couldn't load this user.</p>
         ) : (
-          <Tabs defaultValue={defaultTab} className="flex max-h-[76vh] flex-col">
+          <Tabs defaultValue={defaultTab} className="flex max-h-[76vh] min-w-0 flex-col">
             <div className="overflow-x-auto px-6 pt-4">
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -90,7 +90,7 @@ export function UserDetailDialog({
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5">
               <TabsContent value="overview" className="m-0">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
                   <Field label="Name" value={user.name} />

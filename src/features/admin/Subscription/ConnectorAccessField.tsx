@@ -28,16 +28,31 @@ export function ConnectorAccessField({ userId }: { userId: number }) {
     onError: (e) => toast.error(apiErrorMessage(e, "Couldn't update connector access.")),
   });
 
+  const hints: Record<string, string> = {
+    gst: "GST law, notices and judgements in Claude, ChatGPT and Gemini.",
+    it: "Income Tax law, notices and judgements in Claude, ChatGPT and Gemini.",
+  };
+
   return (
-    <div className="space-y-1.5">
-      <Label>AI connectors (ITL Bridge AI)</Label>
-      <div className="space-y-2 rounded-lg border border-border/60 p-3">
+    <div className="space-y-2">
+      <div>
+        <Label>AI connectors (ITL Bridge AI)</Label>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          Both are on by default. Switching one off suspends it for this customer immediately — no need to press Save.
+        </p>
+      </div>
+      <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60">
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
         ) : (
           (data ?? []).map((c) => (
-            <div key={c.key} className="flex items-center justify-between">
-              <span className="text-sm">{c.label}</span>
+            <div key={c.key} className="flex items-center justify-between gap-4 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{c.label}</p>
+                <p className="text-xs text-muted-foreground">{hints[c.key]}</p>
+              </div>
               <Switch
                 checked={c.enabled}
                 disabled={toggle.isPending}
@@ -47,7 +62,6 @@ export function ConnectorAccessField({ userId }: { userId: number }) {
             </div>
           ))
         )}
-        <p className="text-[11px] text-muted-foreground">Changes apply immediately. Both are on by default.</p>
       </div>
     </div>
   );

@@ -370,7 +370,11 @@ export function EditSubscriptionDialog({
               </Select>
             </div>
             <ProductAccessField value={access} onChange={setAccess} />
-            {access === "bundle" && subscription.user_id != null && <ConnectorAccessField userId={subscription.user_id} />}
+            {access === "bundle" && subscription.user_id != null && (
+              <div className="sm:col-span-2">
+                <ConnectorAccessField userId={subscription.user_id} />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as SubscriptionStatus)}>

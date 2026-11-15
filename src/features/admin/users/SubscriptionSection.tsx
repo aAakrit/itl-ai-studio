@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { SubscriptionSummary } from "@/types/admin";
+import { productsLabel } from "@/lib/plans";
 import {
   CreateSubscriptionDialog,
   EditSubscriptionDialog,
@@ -35,7 +36,7 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 text-sm">{value}</p>
+      <p className="mt-0.5 break-words text-sm">{value}</p>
     </div>
   );
 }
@@ -61,8 +62,8 @@ export function SubscriptionSection({
   const status = (current?.status ?? "").toLowerCase();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="min-w-0 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold">Current subscription</p>
         <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> New subscription
@@ -74,7 +75,7 @@ export function SubscriptionSection({
           No Subscription
         </p>
       ) : (
-        <div className="rounded-lg border border-border/60 p-4">
+        <div className="min-w-0 rounded-lg border border-border/60 p-4">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <p className="text-base font-semibold">{current.plan_name ?? EMPTY}</p>
             <Badge className={subscriptionStatusClass(current.status)}>
@@ -86,6 +87,9 @@ export function SubscriptionSection({
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
             <Field label="Plan ID" value={current.plan_id ?? EMPTY} />
+            <div className="col-span-2">
+              <Field label="Products" value={productsLabel(current.products)} />
+            </div>
             <Field label="Base price" value={formatMoney(current.base_price)} />
             <Field
               label="GST rate"
