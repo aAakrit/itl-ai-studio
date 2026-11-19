@@ -14,8 +14,6 @@ export const workspaceModules: WorkspaceModule[] = [
     icon: "Landmark",
     description: "Statute, case law, circulars and notifications under the Income Tax Act.",
     color: "#7A1025",
-    disabled: true,
-    disabledReason: "Income Tax isn't available yet — the AI provider currently only has GST data.",
     tools: [
       { id: "ask", slug: "ask", name: "Ask Bot", icon: "MessagesSquare", description: "Conversational research." },
       { id: "case-law", slug: "case-law", name: "Case Law Research", icon: "Scale", description: "Search & compare judgments." },

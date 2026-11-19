@@ -538,47 +538,50 @@ function NoticeWorkflowCard({
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <input ref={evidenceInputRef} type="file" multiple className="hidden" onChange={handleEvidencePick} />
             <Button
               variant="outline"
-              size="sm"
-              className="h-7 gap-1 text-[11px]"
+              className="h-11 gap-2 rounded-xl border-primary/40 bg-primary/5 px-5 text-sm font-semibold text-primary shadow-soft hover:border-primary hover:bg-primary/10 hover:text-primary"
               disabled={pending}
               onClick={() => evidenceInputRef.current?.click()}
             >
-              <Paperclip className="h-3 w-3" /> Attach evidence
+              <Paperclip className="h-4 w-4" /> Attach evidence
             </Button>
             {evidenceFiles.length > 0 && (
               <>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="h-7 gap-1 text-[11px]"
+                  className="h-11 gap-2 rounded-xl px-5 text-sm font-semibold"
                   disabled={pending}
                   onClick={handleAddMoreEvidence}
                   title="Submit these documents and keep answering follow-ups before drafting"
                 >
-                  {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                   Submit {evidenceFiles.length} document{evidenceFiles.length > 1 ? "s" : ""}
                 </Button>
                 <Button
-                  size="sm"
-                  className="h-7 gap-1 text-[11px]"
+                  className="h-11 gap-2 rounded-xl px-5 text-sm font-semibold gradient-primary text-primary-foreground shadow-soft"
                   disabled={pending}
                   onClick={handleReplyWithEvidence}
                   title="Generate the reply now using the notice and all attached documents"
                 >
-                  {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                   Reply
                 </Button>
               </>
             )}
-            <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground" disabled={pending} onClick={handleReplyAsItIs}>
+            <Button
+              className="h-11 gap-2 rounded-xl px-5 text-sm font-semibold gradient-primary text-primary-foreground shadow-soft"
+              disabled={pending}
+              onClick={handleReplyAsItIs}
+              title="Draft the reply from the notice as it is, without adding facts or evidence"
+            >
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
               Reply as it is
             </Button>
             {phase === "COLLECTING_FACTS" && evidenceFiles.length === 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground" disabled={pending} onClick={handleForceDraft}>
+              <Button variant="outline" className="h-11 rounded-xl px-5 text-sm font-medium" disabled={pending} onClick={handleForceDraft}>
                 Draft now anyway
               </Button>
             )}
@@ -781,6 +784,14 @@ function RefineDialog({
       // Appended as a NEW assistant message — the original answer is never
       // overwritten, and the conversation history stays intact.
       const refined = await chatService.refineMessage(message.id, trimmed);
+      // Show what was asked, as a question, right before the refined answer — the server stores
+      // it the same way, so it is still there after a reload.
+      addMessage(threadId, {
+        id: `local-refine-${Date.now()}`,
+        role: "user",
+        content: `Refine: ${trimmed}`,
+        createdAt: new Date().toISOString(),
+      });
       addMessage(threadId, refined);
       setInstruction("");
       onOpenChange(false);
