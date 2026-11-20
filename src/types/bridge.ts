@@ -58,11 +58,25 @@ export interface BridgeConnectorAccess {
   enabled: boolean;
 }
 
+/** The customer's ITL Bridge AI plan as the website records it — present even when it is suspended, expired or cancelled. */
+export interface BridgePlanSummary {
+  plan_name: string | null;
+  products: string[];
+  term_years: number;
+  /** active | expired | suspended | cancelled */
+  status: string;
+  start_date: string | null;
+  expiry_date: string | null;
+  days_left: number | null;
+}
+
 export interface BridgeMyStatus {
   /** Bridge is configured on this deployment. */
   enabled: boolean;
   /** The customer has an active subscription that includes ITL Bridge AI. When false, `connectors` is empty. */
   has_access: boolean;
+  /** null only if the customer has never had ITL Bridge AI. */
+  subscription: BridgePlanSummary | null;
   connectors: BridgeConnectorStatus[];
 }
 

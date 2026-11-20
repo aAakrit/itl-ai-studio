@@ -433,6 +433,7 @@ export const useMyBridgeStatus = () =>
     queryKey: ["bridge", "status"],
     queryFn: () => bridgeService.getMyStatus(),
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 

@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useArchivedThreads } from "@/hooks/useArchive";
 import { useArchiveThread, useChatFolders, useChatThreads, useDeleteThread, useRenameThread, useWorkspaceModules } from "@/hooks";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useWorkspaceStore, useSidebarStore, useChatStore } from "@/store";
@@ -238,6 +239,7 @@ export function WorkspaceSidebar() {
           onArchive={handleArchive}
           onDelete={setDeleteTarget}
         />
+        <ArchivedSection moduleId={activeModuleId} toolId={activeToolId} onDelete={setDeleteTarget} />
         {filtered.length === 0 && (
           <p className="px-2 text-[12px] text-muted-foreground">
             {query ? "No chats match your search." : "No conversations yet — start one below."}
@@ -416,6 +418,66 @@ function ThreadGroup({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Archived conversations of the current workspace. Archiving takes a chat out of the main list but
+ * keeps it — it lives here until it is restored or deleted.
+ */
+function ArchivedSection({
+  moduleId,
+  toolId,
+  onDelete,
+}: {
+  moduleId: string;
+  toolId: string;
+  onDelete: (thread: ChatThread) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data } = useArchivedThreads(moduleId, toolId);
+  const archive = useArchiveThread();
+  const items = data ?? [];
+
+  if (items.length === 0) return null;
+
+  const restore = (t: ChatThread) =>
+    archive.mutate(
+      { id: t.id, archived: false },
+      {
+        onSuccess: () => toast.success("Restored to your chats"),
+        onError: () => toast.error("Couldn't restore — please try again."),
+      },
+    );
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-secondary"
+      >
+        <span className="flex items-center gap-1.5">
+          <Archive className="h-3 w-3" /> Archived
+        </span>
+        <span>{items.length}</span>
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-0.5">
+          {items.map((t) => (
+            <li key={t.id} className="group flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-secondary">
+              <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{t.title}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" title="Restore" onClick={() => restore(t)} disabled={archive.isPending}>
+                <ArchiveRestore className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="Delete" onClick={() => onDelete(t)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { authService } from "@/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useIsBridgeProduct } from "@/features/bridge/useBridgeProduct";
+import { accessService } from "@/services/access.service";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -60,8 +61,17 @@ function Login() {
         window.location.assign(next);
         return;
       }
-      // Bridge customers land on their account page (plan + Connect buttons).
-      nav({ to: bridge ? "/profile" : "/workspace" });
+      // Where to land depends on what the account can use — not everyone gets the workspace:
+      //   came from the Bridge page -> account page; ITL AI plan / admin / staff -> workspace;
+      //   Bridge-only plan -> account page (Connect buttons); no active plan -> plans.
+      let dest: "/workspace" | "/profile" | "/pricing" = "/workspace";
+      try {
+        const access = await accessService.me();
+        dest = bridge ? "/profile" : access.workspace ? "/workspace" : access.bridge ? "/profile" : "/pricing";
+      } catch {
+        dest = bridge ? "/profile" : "/workspace"; // access check unavailable: the previous behaviour
+      }
+      nav({ to: dest });
     } catch {
       setError("Invalid email or password.");
     }

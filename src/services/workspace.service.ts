@@ -708,11 +708,11 @@ export const applyResearchEvent = (
 
 export const chatService = {
   /** Lightweight list for the sidebar — metadata only, no message bodies, scoped to one Module+Tool workspace. */
-  listThreads: async (moduleId: string, toolId: string): Promise<ChatThread[]> => {
+  listThreads: async (moduleId: string, toolId: string, archived = false): Promise<ChatThread[]> => {
     try {
       const route = TOOL_BACKEND_ROUTE_MAP[toolId];
       const { data } = await api.get<ApiEnvelope<BackendConversation[]>>(endpoints.ai.conversations, {
-        params: { module: moduleId, provider: route?.provider, tool: route?.tool ?? toolId },
+        params: { module: moduleId, provider: route?.provider, tool: route?.tool ?? toolId, archived },
       });
       return (data.data ?? [])
         .map((conversation) => normalizeThread(conversation, { moduleId, toolId }))

@@ -6,8 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMyBridgeStatus } from "@/hooks";
-import { formatDate } from "@/features/admin/users/admin-user-utils";
-import type { BridgeConnectorStatus } from "@/types/bridge";
+import { useIsAdmin } from "@/hooks/useAuth";
+import { formatDate, subscriptionStatusClass, subscriptionStatusLabel } from "@/features/admin/users/admin-user-utils";
+import { productsLabel, termLabel } from "@/lib/plans";
+import type { BridgeConnectorStatus, BridgePlanSummary } from "@/types/bridge";
 import { bridgePlanLabel, bridgeStatusClass, bridgeStatusLabel, limitLabel } from "./bridge-utils";
 
 const APPS = [
@@ -59,8 +61,15 @@ async function copyText(text: string) {
 export function BridgeConnectCard() {
   const { data, isLoading } = useMyBridgeStatus();
 
-  // Not configured, no active Bridge subscription, still loading, or unavailable: show nothing.
-  if (isLoading || !data || !data.enabled || !data.has_access || data.connectors.length === 0) return null;
+  // Not configured on this deployment, or still loading: show nothing.
+  if (isLoading || !data || !data.enabled) return null;
+
+  // No active plan: no connectors — but the customer still sees their plan and can renew.
+  // (Hidden only if they have never had ITL Bridge AI.)
+  if (!data.has_access) {
+    return data.subscription ? <InactivePlanCard plan={data.subscription} /> : null;
+  }
+  if (data.connectors.length === 0) return null;
 
   return (
     <Card className="mt-6 p-6 shadow-soft">
@@ -83,14 +92,16 @@ export function BridgeConnectCard() {
       </div>
 
       <p className="mt-6 text-[11px] text-muted-foreground">
-        Connect once on a computer — it then works in the same app on your phone. One plan works in all three apps
-        and the daily limit is shared. To disconnect, remove the connector inside your AI app.
+        Connect once on a computer — it then works in the same app on your phone. One plan works in all three apps. To disconnect, remove the connector inside your AI app.
       </p>
     </Card>
   );
 }
 
 function ConnectorBlock({ connector }: { connector: BridgeConnectorStatus }) {
+  // Daily usage and limits are for admins only — customers just see their plan.
+  const isAdmin = useIsAdmin();
+
   if (connector.disabled) {
     return (
       <section>
@@ -138,7 +149,7 @@ function ConnectorBlock({ connector }: { connector: BridgeConnectorStatus }) {
             {connector.label} details are unavailable right now. Please try again in a moment.
           </p>
         ) : status?.exists && sub ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className={isAdmin ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Plan</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -150,15 +161,17 @@ function ConnectorBlock({ connector }: { connector: BridgeConnectorStatus }) {
                 {status.active && status.days_left != null && ` · ${status.days_left} days left`}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Today</p>
-              <p className="mt-1 text-sm font-semibold">
-                {usage?.searches ?? 0} of {limitLabel(usage?.search_limit)} searches
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {usage?.documents ?? 0} of {limitLabel(usage?.document_limit)} full documents
-              </p>
-            </div>
+            {isAdmin && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Today (admin)</p>
+                <p className="mt-1 text-sm font-semibold">
+                  {usage?.searches ?? 0} of {limitLabel(usage?.search_limit)} searches
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {usage?.documents ?? 0} of {limitLabel(usage?.document_limit)} full documents
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -215,5 +228,60 @@ function ConnectorBlock({ connector }: { connector: BridgeConnectorStatus }) {
         </>
       )}
     </section>
+  );
+}
+
+
+const INACTIVE_NOTE: Record<string, string> = {
+  expired: "Your plan has expired.",
+  suspended: "Your plan is suspended.",
+  cancelled: "Your plan was cancelled.",
+};
+
+/** Plan summary for a customer whose ITL Bridge AI plan is not active. */
+function InactivePlanCard({ plan }: { plan: BridgePlanSummary }) {
+  return (
+    <Card className="mt-6 p-6 shadow-soft">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/8 text-primary">
+          <Plug className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="font-display text-lg font-semibold">ITL Bridge AI</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {INACTIVE_NOTE[plan.status] ?? "Your plan is not active."} Renew to connect GST AI and Income Tax AI to
+            your AI assistant again.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-border/60 bg-card p-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Plan</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold">{plan.plan_name ?? productsLabel(plan.products)}</span>
+              <Badge className={subscriptionStatusClass(plan.status)}>{subscriptionStatusLabel(plan.status)}</Badge>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {productsLabel(plan.products)} · {termLabel(plan.term_years)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Validity</p>
+            <p className="mt-1 text-sm font-semibold">
+              {plan.start_date ? formatDate(plan.start_date) : "—"} → {plan.expiry_date ? formatDate(plan.expiry_date) : "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {plan.status === "expired" && plan.expiry_date ? `Expired on ${formatDate(plan.expiry_date)}` : "Not currently active"}
+            </p>
+          </div>
+        </div>
+
+        <Button asChild className="mt-4 h-10 rounded-xl gradient-primary text-primary-foreground shadow-soft">
+          <Link to="/pricing">Renew</Link>
+        </Button>
+      </div>
+    </Card>
   );
 }

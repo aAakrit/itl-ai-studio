@@ -637,9 +637,12 @@ function BridgeCta() {
         </div>
       </div>
       <p className="mx-auto mt-6 max-w-3xl text-center text-[11px] leading-relaxed text-muted-foreground">
-        ITL Bridge AI is an independent service of Income Tax Library. Third-party AI platforms are subject to their
-        respective terms, availability, privacy policies and usage charges. References to third-party products do not
-        imply endorsement or affiliation unless expressly stated.
+        <span className="font-semibold">Disclaimer:</span> ITL Bridge AI is an independent service of Income Tax
+        Library. Third-party AI platforms are subject to their own terms, availability, privacy policies and usage
+        charges, and any reference to such platforms does not imply endorsement, partnership or affiliation unless
+        expressly stated. AI-generated responses are for informational purposes only and do not constitute legal, tax
+        or professional advice; users should independently review and verify all responses before relying on or acting
+        upon them.
       </p>
     </section>
   );

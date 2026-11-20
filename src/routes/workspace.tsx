@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { WorkspaceShell } from "@/features/workspace/WorkspaceShell";
+import { WorkspaceGate } from "@/features/workspace/WorkspaceGate";
 import { useAuthStore } from "@/store/authStore";
 
 export const Route = createFileRoute("/workspace")({
@@ -14,6 +14,6 @@ export const Route = createFileRoute("/workspace")({
       throw redirect({ to: "/login" });
     }
   },
-  component: WorkspaceShell,
+  component: WorkspaceGate,
   head: () => ({ meta: [{ title: "Workspace — ITL AI" }, { name: "description", content: "Your AI workspace for Income Tax and GST research." }] }),
 });

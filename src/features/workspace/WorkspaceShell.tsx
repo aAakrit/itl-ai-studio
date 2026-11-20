@@ -632,28 +632,6 @@ export function WorkspaceShell() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {/* Tool tabs */}
-            <div className="mr-2 hidden gap-0.5 rounded-lg border border-border/60 bg-secondary/60 p-0.5 md:flex">
-              {(activeModule?.tools ?? []).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => !t.disabled && setTool(t.id)}
-                  disabled={t.disabled}
-                  title={t.disabled ? t.disabledReason ?? "Coming soon" : undefined}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                    t.disabled
-                      ? "cursor-not-allowed text-muted-foreground/40"
-                      : activeToolId === t.id
-                        ? "bg-card text-foreground shadow-soft"
-                        : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Icon name={t.icon} className="h-3 w-3" />
-                  {t.name}
-                </button>
-              ))}
-            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!thread} title="Share">
@@ -697,6 +675,29 @@ export function WorkspaceShell() {
             )}
           </div>
         </header>
+
+        {/* Tool tabs — Ask Bot, Case Law Research, Notice Reply, ... Large and clearly the primary navigation. */}
+        <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border/60 bg-background px-4 py-2.5">
+          {(activeModule?.tools ?? []).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => !t.disabled && setTool(t.id)}
+              disabled={t.disabled}
+              title={t.disabled ? t.disabledReason ?? "Coming soon" : undefined}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all",
+                t.disabled
+                  ? "cursor-not-allowed border-dashed border-border/60 text-muted-foreground/50"
+                  : activeToolId === t.id
+                    ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                    : "border-border/70 bg-card text-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
+              )}
+            >
+              <Icon name={t.icon} className="h-4 w-4" />
+              {t.name}
+            </button>
+          ))}
+        </div>
 
         {renamingActive && thread && (
           <div className="flex items-center gap-2 border-b border-border/60 bg-secondary/30 px-4 py-2">
